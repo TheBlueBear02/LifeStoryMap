@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Routes, Route, Link, useNavigate, useParams, useLocation } from 'react-router-dom'
 import './App.css'
 
 function generateNextEventId(events) {
@@ -268,9 +269,208 @@ function EventBlock({
   )
 }
 
-function App() {
+function HomeView() {
+  const [stories, setStories] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [newStoryName, setNewStoryName] = useState('')
+
+  useEffect(() => {
+    const loadStories = async () => {
+      try {
+        const res = await fetch('/api/stories')
+        if (!res.ok) throw new Error('Failed to load stories')
+        const data = await res.json()
+        setStories(Array.isArray(data) ? data : [])
+      } catch (err) {
+        console.error(err)
+        setStories([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadStories()
+  }, [])
+
+  const handleCreateStory = async (e) => {
+    e.preventDefault()
+    if (!newStoryName.trim()) return
+
+    try {
+      const res = await fetch('/api/stories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newStoryName.trim() }),
+      })
+      if (!res.ok) {
+        const error = await res.json()
+        alert(error.error || 'Failed to create story')
+        return
+      }
+      const newStory = await res.json()
+      setStories([...stories, newStory])
+      setNewStoryName('')
+      setShowCreateForm(false)
+      window.location.href = `/edit-story/${newStory.id}`
+    } catch (err) {
+      console.error(err)
+      alert('Failed to create story')
+    }
+  }
+
+  const handleDeleteStory = async (storyId) => {
+    if (!window.confirm('Are you sure you want to delete this story? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/stories/${storyId}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) {
+        const error = await res.json()
+        alert(error.error || 'Failed to delete story')
+        return
+      }
+      // Remove the story from the list
+      setStories(stories.filter((s) => s.id !== storyId))
+    } catch (err) {
+      console.error(err)
+      alert('Failed to delete story')
+    }
+  }
+
+  const formatDate = (dateString) => {
+    try {
+      const date = new Date(dateString)
+      return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+    } catch {
+      return dateString
+    }
+  }
+
+  return (
+    <div className="home-view">
+      <div className="home-content">
+        <h1>Life Story Maps</h1>
+        <p className="home-subtitle">Create and manage your life story maps</p>
+
+        {loading ? (
+          <div className="stories-loading">Loading stories...</div>
+        ) : (
+          <>
+            <div className="stories-list">
+              {stories.length === 0 ? (
+                <div className="empty-stories">
+                  <p>No stories yet. Create your first story to get started!</p>
+                </div>
+              ) : (
+                stories.map((story) => (
+                  <div key={story.id} className="story-card">
+                    <div className="story-card-header">
+                      <h3 className="story-name">{story.name}</h3>
+                      <div className="story-header-actions">
+                        <button
+                          type="button"
+                          className="story-delete-btn"
+                          onClick={() => handleDeleteStory(story.id)}
+                        >
+                          Remove
+                        </button>
+                        <div className="story-badge">
+                          {story.published ? (
+                            <span className="badge published">Published</span>
+                          ) : (
+                            <span className="badge draft">Draft</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="story-card-info">
+                      <div className="story-info-item">
+                        <span className="info-label">Events:</span>
+                        <span className="info-value">{story.eventCount}</span>
+                      </div>
+                      <div className="story-info-item">
+                        <span className="info-label">Created:</span>
+                        <span className="info-value">{formatDate(story.dateCreated)}</span>
+                      </div>
+                    </div>
+                    <div className="story-card-actions">
+                      <Link
+                        to={`/view-story/${story.id}`}
+                        className="primary-btn story-view-btn"
+                      >
+                        View
+                      </Link>
+                      <Link
+                        to={`/edit-story/${story.id}`}
+                        className="secondary-btn story-edit-btn"
+                      >
+                        Edit Story
+                      </Link>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {!showCreateForm && stories.length < 5 && (
+              <div className="create-story-btn-wrapper">
+                <button
+                  type="button"
+                  className="primary-btn create-story-btn"
+                  onClick={() => setShowCreateForm(true)}
+                >
+                  + Create New Story
+                </button>
+              </div>
+            )}
+
+            {showCreateForm && (
+              <form className="create-story-form" onSubmit={handleCreateStory}>
+                <input
+                  type="text"
+                  className="story-name-input"
+                  placeholder="Enter story name"
+                  value={newStoryName}
+                  onChange={(e) => setNewStoryName(e.target.value)}
+                  autoFocus
+                />
+                <div className="create-story-form-actions">
+                  <button type="submit" className="primary-btn" disabled={!newStoryName.trim()}>
+                    Create
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary-btn"
+                    onClick={() => {
+                      setShowCreateForm(false)
+                      setNewStoryName('')
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {stories.length >= 5 && (
+              <p className="max-stories-message">Maximum of 5 stories reached</p>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function CreateStoryView() {
+  const navigate = useNavigate()
+  const { storyId } = useParams()
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
+  const [story, setStory] = useState(null)
   const [saveStatus, setSaveStatus] = useState('idle') // idle | saving | saved | error
   const [expandedIndexes, setExpandedIndexes] = useState(new Set())
   const [isDirty, setIsDirty] = useState(false)
@@ -361,12 +561,25 @@ function App() {
   }
 
   useEffect(() => {
-    const loadEvents = async () => {
+    const loadStoryAndEvents = async () => {
+      if (!storyId) {
+        // Redirect to home if no storyId provided
+        navigate('/')
+        return
+      }
+
       try {
-        const res = await fetch('/api/events')
-        if (!res.ok) throw new Error('Failed to load events')
-        const data = await res.json()
-        const initialEvents = Array.isArray(data) ? data : []
+        // Load story info
+        const storyRes = await fetch(`/api/stories/${storyId}`)
+        if (!storyRes.ok) throw new Error('Failed to load story')
+        const storyData = await storyRes.json()
+        setStory(storyData)
+
+        // Load events for this story
+        const eventsRes = await fetch(`/api/stories/${storyId}/events`)
+        if (!eventsRes.ok) throw new Error('Failed to load events')
+        const eventsData = await eventsRes.json()
+        const initialEvents = Array.isArray(eventsData) ? eventsData : []
         setEvents(initialEvents)
         setIsDirty(false)
       } catch (err) {
@@ -377,9 +590,8 @@ function App() {
       }
     }
 
-    loadEvents()
-  }, [])
-
+    loadStoryAndEvents()
+  }, [storyId])
   const toggleExpand = (index) => {
     setExpandedIndexes((prev) => {
       const next = new Set(prev)
@@ -594,10 +806,10 @@ function App() {
   }
 
   const saveToFile = async () => {
-    if (!Array.isArray(events)) return
+    if (!Array.isArray(events) || !storyId) return
     try {
       setSaveStatus('saving')
-      const res = await fetch('/api/events', {
+      const res = await fetch(`/api/stories/${storyId}/events`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -616,10 +828,15 @@ function App() {
   }
 
   return (
-    <div className="app-root">
+    <>
       <header className="app-header">
+        <div className="header-top-row">
+          <button type="button" className="back-btn" onClick={() => navigate('/')} title="Back">
+            ← Back
+          </button>
+        </div>
         <div>
-          <h1>Create New Story</h1>
+          <h1>{story ? story.name : 'Create New Story'}</h1>
           <p className="app-subtitle">
             Edit existing events and insert new ones between them. Transitions will automatically
             update their <code>sourceEventId</code>.
@@ -695,6 +912,39 @@ function App() {
           </div>
         )}
       </main>
+    </>
+  )
+}
+
+function SidebarMenu() {
+  const location = useLocation()
+
+  return (
+    <div className="sidebar-menu">
+      <nav className="sidebar-nav">
+        <Link
+          to="/"
+          className={`sidebar-nav-item ${location.pathname === '/' ? 'active' : ''}`}
+        >
+          <span className="nav-icon">🏠</span>
+          <span>Home</span>
+        </Link>
+      </nav>
+    </div>
+  )
+}
+
+function App() {
+  return (
+    <div className="app-container">
+      <div className="app-root">
+        <Routes>
+          <Route path="/" element={<HomeView />} />
+          <Route path="/edit-story/:storyId" element={<CreateStoryView />} />
+          <Route path="/create-story" element={<CreateStoryView />} />
+        </Routes>
+      </div>
+      <SidebarMenu />
     </div>
   )
 }

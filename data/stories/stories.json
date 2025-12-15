@@ -1,0 +1,18 @@
+[
+  {
+    "id": "story-1",
+    "name": "יוסף - סיפור חיים",
+    "eventsFilePath": "events/events.json",
+    "dateCreated": "2024-01-15T10:00:00.000Z",
+    "eventCount": 4,
+    "published": false
+  },
+  {
+    "id": "story-1765836246224",
+    "name": "דניס",
+    "eventsFilePath": "events/events-story-1765836246224.json",
+    "dateCreated": "2025-12-15T22:04:06.225Z",
+    "eventCount": 1,
+    "published": false
+  }
+]
