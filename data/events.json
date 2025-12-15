@@ -1,0 +1,133 @@
+[
+  {
+    "eventId": "E003",
+    "eventType": "Event",
+    "title": "שירות צבאי והעלייה לארץ",
+    "timeline": {
+      "dateStart": "1960-07-01",
+      "dateEnd": "1960-07-01"
+    },
+    "location": {
+      "name": "תל אביב, נמל יפו",
+      "coordinates": {
+        "lat": 32.052,
+        "lng": 34.757
+      },
+      "mapView": {
+        "zoom": 15,
+        "pitch": 60,
+        "bearing": 45,
+        "mapStyle": "mapbox://styles/mapbox/satellite-streets-v12"
+      }
+    },
+    "transition": {
+      "type": "ArcFlyWithPoint",
+      "durationSeconds": 3,
+      "sourceEventId": "E002",
+      "lineStyleKey": "GoldenAgePath"
+    },
+    "content": {
+      "textHtml": "<p>כאן מתחילה תקופה חדשה. אחרי שירות צבאי קצר בסיביר, יוסף קיבל אישור עלייה והגיע לנמל יפו בסוף 1962.</p>",
+      "media": [
+        {
+          "type": "image",
+          "url": "uploaded:image.jpg-a02c8d80-61d3-48c2-b1a4-c6ce4ca803c9",
+          "caption": "יוסף על סיפון האונייה המגיעה ליפו, דצמבר 1962",
+          "altText": "תמונה היסטורית של עולים חדשים בנמל יפו"
+        },
+        {
+          "type": "audio",
+          "url": "tel-aviv-soundscape.mp3",
+          "autoplay": true,
+          "loop": true,
+          "volume": 0.5
+        }
+      ],
+      "imageComparison": {
+        "enabled": true,
+        "labelOld": "נמל יפו 1962",
+        "urlOld": "yfo-port-1962.jpg",
+        "labelNew": "נמל יפו כיום",
+        "urlNew": "yfo-port-current.jpg"
+      }
+    }
+  },
+  {
+    "eventId": "E006",
+    "eventType": "Event",
+    "title": "",
+    "timeline": {
+      "dateStart": "",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "",
+      "coordinates": {
+        "lat": 0,
+        "lng": 0
+      },
+      "mapView": {
+        "zoom": 10,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "transition": {
+      "type": "ArcFlyWithPoint",
+      "durationSeconds": 3,
+      "sourceEventId": "E003",
+      "lineStyleKey": ""
+    },
+    "content": {
+      "textHtml": "",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "labelOld": "",
+        "urlOld": "",
+        "labelNew": "",
+        "urlNew": ""
+      }
+    }
+  },
+  {
+    "eventId": "E005",
+    "eventType": "Event",
+    "title": "",
+    "timeline": {
+      "dateStart": "",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "",
+      "coordinates": {
+        "lat": 0,
+        "lng": 0
+      },
+      "mapView": {
+        "zoom": 10,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "transition": {
+      "type": "ArcFlyWithPoint",
+      "durationSeconds": 3,
+      "sourceEventId": "E006",
+      "lineStyleKey": ""
+    },
+    "content": {
+      "textHtml": "",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "labelOld": "",
+        "urlOld": "",
+        "labelNew": "",
+        "urlNew": ""
+      }
+    }
+  }
+]
