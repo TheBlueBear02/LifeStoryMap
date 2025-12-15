@@ -31,7 +31,7 @@ export const initialEvents = [
     },
     content: {
       textHtml:
-        '<p>כאן מתחילה תקופה חדשה. אחרי שירות צבאי קצר בסיביר, יוסף קיבל אישור עלייה והגיע לנמל יפו בסוף 1962.</p>',
+        'כאן מתחילה תקופה חדשה. אחרי שירות צבאי קצר בסיביר, יוסף קיבל אישור עלייה והגיע לנמל יפו בסוף 1962.',
       media: [
         {
           type: 'image',
@@ -49,9 +49,8 @@ export const initialEvents = [
       ],
       imageComparison: {
         enabled: true,
-        labelOld: 'נמל יפו 1962',
+        caption: 'נמל יפו – אז והיום',
         urlOld: 'yfo-port-1962.jpg',
-        labelNew: 'נמל יפו כיום',
         urlNew: 'yfo-port-current.jpg',
       },
     },

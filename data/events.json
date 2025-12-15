@@ -27,7 +27,7 @@
       "lineStyleKey": "GoldenAgePath"
     },
     "content": {
-      "textHtml": "<p>כאן מתחילה תקופה חדשה. אחרי שירות צבאי קצר בסיביר, יוסף קיבל אישור עלייה והגיע לנמל יפו בסוף 1962.</p>",
+      "textHtml": "כאן מתחילה תקופה חדשה. אחרי שירות צבאי קצר בסיביר, יוסף קיבל אישור עלייה והגיע לנמל יפו בסוף 1962.\n\nלמרות זאת",
       "media": [
         {
           "type": "image",
@@ -45,9 +45,8 @@
       ],
       "imageComparison": {
         "enabled": true,
-        "labelOld": "נמל יפו 1962",
+        "caption": "נמל יפו – אז והיום",
         "urlOld": "yfo-port-1962.jpg",
-        "labelNew": "נמל יפו כיום",
         "urlNew": "yfo-port-current.jpg"
       }
     }
@@ -84,9 +83,8 @@
       "media": [],
       "imageComparison": {
         "enabled": false,
-        "labelOld": "",
+        "caption": "",
         "urlOld": "",
-        "labelNew": "",
         "urlNew": ""
       }
     }
@@ -123,9 +121,8 @@
       "media": [],
       "imageComparison": {
         "enabled": false,
-        "labelOld": "",
+        "caption": "",
         "urlOld": "",
-        "labelNew": "",
         "urlNew": ""
       }
     }
