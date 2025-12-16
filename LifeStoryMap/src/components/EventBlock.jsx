@@ -6,6 +6,7 @@ function EventBlock({
   onChangeField,
   onUploadMainImage,
   onUploadComparisonImage,
+  onRemoveComparisonImage,
   onInsertAfter,
   onDelete,
   onBeginPickLocation,
@@ -170,39 +171,91 @@ function EventBlock({
                 <div className="image-comparison-row">
                   <label className="file-input-label">
                     Main image
-                    <button type="button" className="file-input-button">
-                      <span className="file-input-icon" aria-hidden="true">⭱</span>
-                      <span>Choose file</span>
-                    </button>
-                    <input
-                      className="file-input-native"
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file && onUploadComparisonImage) {
-                          onUploadComparisonImage(index, 'old', file)
-                        }
-                      }}
-                    />
+                    {event.content.imageComparison.urlOld ? (
+                      <div className="image-preview-container">
+                        <img
+                          src={event.content.imageComparison.urlOld}
+                          alt="Main image preview"
+                          className="image-preview"
+                        />
+                        <button
+                          type="button"
+                          className="image-remove-btn"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            if (onRemoveComparisonImage) {
+                              onRemoveComparisonImage(index, 'old')
+                            }
+                          }}
+                          title="Remove image"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <button type="button" className="file-input-button">
+                          <span className="file-input-icon" aria-hidden="true">⭱</span>
+                          <span>Choose file</span>
+                        </button>
+                        <input
+                          className="file-input-native"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file && onUploadComparisonImage) {
+                              onUploadComparisonImage(index, 'old', file)
+                            }
+                          }}
+                        />
+                      </>
+                    )}
                   </label>
                   <label className="image-comparison-new-version file-input-label">
                     Add new version
-                    <button type="button" className="file-input-button">
-                      <span className="file-input-icon" aria-hidden="true">⭱</span>
-                      <span>Choose file</span>
-                    </button>
-                    <input
-                      className="file-input-native"
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file && onUploadComparisonImage) {
-                          onUploadComparisonImage(index, 'new', file)
-                        }
-                      }}
-                    />
+                    {event.content.imageComparison.urlNew ? (
+                      <div className="image-preview-container">
+                        <img
+                          src={event.content.imageComparison.urlNew}
+                          alt="New version preview"
+                          className="image-preview"
+                        />
+                        <button
+                          type="button"
+                          className="image-remove-btn"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            if (onRemoveComparisonImage) {
+                              onRemoveComparisonImage(index, 'new')
+                            }
+                          }}
+                          title="Remove image"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <button type="button" className="file-input-button">
+                          <span className="file-input-icon" aria-hidden="true">⭱</span>
+                          <span>Choose file</span>
+                        </button>
+                        <input
+                          className="file-input-native"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file && onUploadComparisonImage) {
+                              onUploadComparisonImage(index, 'new', file)
+                            }
+                          }}
+                        />
+                      </>
+                    )}
                   </label>
                 </div>
                 <label>

@@ -27,13 +27,13 @@
       "lineStyleKey": ""
     },
     "content": {
-      "textHtml": "",
+      "textHtml": "זה האירוע הראשון שמישהו יוצר בפלטפורמה הזו!\n\nנסיון",
       "media": [],
       "imageComparison": {
         "enabled": false,
-        "caption": "",
-        "urlOld": "",
-        "urlNew": ""
+        "caption": "Kamino Logo",
+        "urlOld": "/stories/images/1765910839513-yfnyix.jpg",
+        "urlNew": "/stories/images/1765910882824-48viv3.png"
       }
     }
   }

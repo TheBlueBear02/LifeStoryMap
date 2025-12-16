@@ -1,0 +1,18 @@
+.empty-state {
+  text-align: center;
+  padding: 2rem 1rem;
+  border-radius: 1rem;
+  border: 1px dashed #d1d5db;
+  color: #6b7280;
+  background: radial-gradient(circle at top left, #eff6ff, transparent 60%);
+}
+
+.empty-state p {
+  margin-bottom: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .header-actions {
+    justify-content: flex-start;
+  }
+}

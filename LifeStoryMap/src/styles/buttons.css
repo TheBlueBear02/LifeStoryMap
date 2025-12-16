@@ -1,0 +1,62 @@
+.primary-btn,
+.secondary-btn {
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.8rem;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 500;
+}
+
+.primary-btn {
+  background: linear-gradient(90deg, #2563eb, #4f46e5);
+  color: white;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.35);
+}
+
+.primary-btn:hover {
+  filter: brightness(1.05);
+}
+
+.secondary-btn {
+  background: white;
+  color: #111827;
+  border: 1px solid #e5e7eb;
+}
+
+.secondary-btn:hover {
+  background: #f9fafb;
+}
+
+.secondary-btn:disabled {
+  background: #f9fafb;
+  color: #9ca3af;
+  border-color: #e5e7eb;
+  cursor: default;
+  box-shadow: none;
+  opacity: 0.8;
+}
+
+.choose-location-btn {
+  flex-shrink: 0;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.choose-location-btn:hover {
+  background: #1d4ed8;
+}
+
+.choose-location-btn:active {
+  background: #1e40af;
+}

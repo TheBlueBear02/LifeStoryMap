@@ -109,6 +109,23 @@ function EditStoryView({
     }
   }
 
+  const handleRemoveComparisonImage = (index, which) => {
+    setEvents((prev) =>
+      prev.map((event, i) => {
+        if (i !== index) return event
+        const clone = structuredClone ? structuredClone(event) : JSON.parse(JSON.stringify(event))
+        if (!clone.content || typeof clone.content !== 'object') clone.content = {}
+        if (!clone.content.imageComparison || typeof clone.content.imageComparison !== 'object') {
+          clone.content.imageComparison = { enabled: true, caption: '', urlOld: '', urlNew: '' }
+        }
+        if (which === 'old') clone.content.imageComparison.urlOld = ''
+        else if (which === 'new') clone.content.imageComparison.urlNew = ''
+        return clone
+      }),
+    )
+    setIsDirty(true)
+  }
+
   useEffect(() => {
     const loadStoryAndEvents = async () => {
       if (!storyId) {
@@ -624,6 +641,7 @@ function EditStoryView({
                 onChangeField={updateEventField}
                 onUploadMainImage={handleUploadMainImage}
                 onUploadComparisonImage={handleUploadComparisonImage}
+                onRemoveComparisonImage={handleRemoveComparisonImage}
                 onInsertAfter={insertEventAt}
                 onDelete={deleteEventAt}
                 onBeginPickLocation={beginPickLocationForEvent}
