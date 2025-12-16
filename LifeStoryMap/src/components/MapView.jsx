@@ -16,6 +16,16 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange }) {
   const mapRef = useRef(null)
   const markerRef = useRef(null)
   const isSyncingFromPropsRef = useRef(false) // Track if we're syncing from props to avoid feedback loop
+  
+  // Store callbacks in refs to avoid re-initializing the map when they change
+  const onMapClickRef = useRef(onMapClick)
+  const onCameraChangeRef = useRef(onCameraChange)
+  
+  // Update refs when callbacks change (without triggering re-initialization)
+  useEffect(() => {
+    onMapClickRef.current = onMapClick
+    onCameraChangeRef.current = onCameraChange
+  }, [onMapClick, onCameraChange])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -56,7 +66,7 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange }) {
     mapRef.current = map
 
     const handleClick = (e) => {
-      if (!onMapClick) return
+      if (!onMapClickRef.current) return
       const lng = e.lngLat.lng
       const lat = e.lngLat.lat
 
@@ -67,7 +77,7 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange }) {
         bearing: map.getBearing(),
       }
 
-      onMapClick({
+      onMapClickRef.current({
         lng,
         lat,
         camera: currentCamera,
@@ -76,9 +86,9 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange }) {
 
     const handleMoveEnd = () => {
       // Don't trigger callback if we're currently syncing from props (avoids feedback loop)
-      if (isSyncingFromPropsRef.current || !onCameraChange) return
+      if (isSyncingFromPropsRef.current || !onCameraChangeRef.current) return
       const center = map.getCenter()
-      onCameraChange({
+      onCameraChangeRef.current({
         center: [center.lng, center.lat],
         zoom: map.getZoom(),
         pitch: map.getPitch(),
@@ -86,6 +96,7 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange }) {
       })
     }
 
+    map.on('click', handleClick)
     map.on('moveend', handleMoveEnd)
 
     // Prevent pitch and bearing changes to keep map flat (Google Maps-like)
@@ -116,38 +127,7 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange }) {
       mapRef.current = null
       markerRef.current = null
     }
-  }, [camera, onCameraChange])
-
-  // Handle click events separately so we can update when onMapClick changes
-  useEffect(() => {
-    const map = mapRef.current
-    if (!map) return
-
-    const handleClick = (e) => {
-      if (!onMapClick) return
-      const lng = e.lngLat.lng
-      const lat = e.lngLat.lat
-
-      const currentCamera = {
-        center: [lng, lat],
-        zoom: map.getZoom(),
-        pitch: map.getPitch(),
-        bearing: map.getBearing(),
-      }
-
-      onMapClick({
-        lng,
-        lat,
-        camera: currentCamera,
-      })
-    }
-
-    map.on('click', handleClick)
-
-    return () => {
-      map.off('click', handleClick)
-    }
-  }, [onMapClick])
+  }, []) // Empty dependency array - map should only initialize once on mount
 
   // Keep camera in sync when props change (external flyTo)
   useEffect(() => {

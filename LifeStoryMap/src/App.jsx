@@ -9,12 +9,9 @@ function App() {
   const location = useLocation()
   const isEditMode = location.pathname.startsWith('/edit-story/') || location.pathname.startsWith('/create-story')
   
-  // Reset picking location state when navigating away from edit mode
-  useEffect(() => {
-    if (!isEditMode) {
-      setIsPickingLocation(false)
-    }
-  }, [isEditMode])
+  // Extract storyId from pathname
+  const storyIdMatch = location.pathname.match(/\/edit-story\/([^/]+)/)
+  const currentStoryId = storyIdMatch ? storyIdMatch[1] : (location.pathname === '/create-story' ? 'new' : null)
   
   const [mapCamera, setMapCamera] = useState({
     center: [34.7818, 32.0853], // Default center (Tel Aviv as a neutral starting point)
@@ -27,12 +24,19 @@ function App() {
   const [lastMapClick, setLastMapClick] = useState(null)
   const [isPickingLocation, setIsPickingLocation] = useState(false)
 
-  // Reset picking location state when navigating away from edit mode
+  // Reset marker location and picking state when switching stories or navigating away from edit mode
   useEffect(() => {
     if (!isEditMode) {
       setIsPickingLocation(false)
+      setMarkerLocation(null)
+      setLastMapClick(null)
+    } else {
+      // Reset marker when story changes (but keep it if we're just expanding/collapsing events)
+      setMarkerLocation(null)
+      setLastMapClick(null)
+      setIsPickingLocation(false)
     }
-  }, [isEditMode])
+  }, [currentStoryId, isEditMode])
 
   const handleMapClick = ({ lng, lat, camera }) => {
     // Only handle map clicks when picking location in edit mode
@@ -86,7 +90,7 @@ function App() {
         <MapView
           camera={mapCamera}
           markerLocation={isEditMode ? markerLocation : null}
-          onMapClick={isEditMode && isPickingLocation ? handleMapClick : null}
+          onMapClick={isEditMode ? handleMapClick : null}
           onCameraChange={handleCameraChange}
         />
       </div>
@@ -103,6 +107,7 @@ function App() {
                 onMapCameraChange={setMapCamera}
                 lastMapClick={lastMapClick}
                 onPickingLocationChange={setIsPickingLocation}
+                onLastMapClickChange={setLastMapClick}
               />
             )}
           />
@@ -116,6 +121,7 @@ function App() {
                 onMapCameraChange={setMapCamera}
                 lastMapClick={lastMapClick}
                 onPickingLocationChange={setIsPickingLocation}
+                onLastMapClickChange={setLastMapClick}
               />
             )}
           />

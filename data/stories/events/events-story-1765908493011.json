@@ -8,13 +8,13 @@
       "dateEnd": ""
     },
     "location": {
-      "name": "Жуково, Zakarpattia Oblast, Ukraine",
+      "name": "Ramat HaShofet, Israel",
       "coordinates": {
-        "lat": 48.65270440689838,
-        "lng": 22.628332083619313
+        "lat": 32.610897592711524,
+        "lng": 35.093301029581994
       },
       "mapView": {
-        "zoom": 8.855460442263736,
+        "zoom": 12.070232783389917,
         "pitch": 0,
         "bearing": 0,
         "mapStyle": "mapbox://styles/mapbox/streets-v12"
@@ -22,7 +22,7 @@
     },
     "transition": {
       "type": "ArcFlyWithPoint",
-      "durationSeconds": 7,
+      "durationSeconds": 3,
       "sourceEventId": null,
       "lineStyleKey": ""
     },

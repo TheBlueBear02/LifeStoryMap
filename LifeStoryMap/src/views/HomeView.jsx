@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 function HomeView() {
@@ -6,6 +6,10 @@ function HomeView() {
   const [loading, setLoading] = useState(true)
   const [selectedSlot, setSelectedSlot] = useState(null)
   const [newStoryName, setNewStoryName] = useState('')
+  const [openMenuId, setOpenMenuId] = useState(null)
+  const [editingStoryId, setEditingStoryId] = useState(null)
+  const [editingStoryName, setEditingStoryName] = useState('')
+  const menuRefs = useRef({})
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -75,12 +79,72 @@ function HomeView() {
     }
   }
 
-  const formatDate = (dateString) => {
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (openMenuId && menuRefs.current[openMenuId]) {
+        if (!menuRefs.current[openMenuId].contains(event.target)) {
+          setOpenMenuId(null)
+        }
+      }
+    }
+
+    if (openMenuId) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [openMenuId])
+
+  const toggleMenu = (storyId) => {
+    setOpenMenuId(openMenuId === storyId ? null : storyId)
+  }
+
+  const handleStartEditTitle = (storyId, currentName) => {
+    setEditingStoryId(storyId)
+    setEditingStoryName(currentName)
+  }
+
+  const handleCancelEditTitle = () => {
+    setEditingStoryId(null)
+    setEditingStoryName('')
+  }
+
+  const handleSaveTitle = async (storyId) => {
+    if (!editingStoryName.trim()) {
+      handleCancelEditTitle()
+      return
+    }
+
     try {
-      const date = new Date(dateString)
-      return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-    } catch {
-      return dateString
+      const res = await fetch(`/api/stories/${storyId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editingStoryName.trim() }),
+      })
+      if (!res.ok) {
+        const error = await res.json()
+        alert(error.error || 'Failed to update story name')
+        return
+      }
+      const updatedStory = await res.json()
+      setStories(stories.map((s) => (s.id === storyId ? updatedStory : s)))
+      setEditingStoryId(null)
+      setEditingStoryName('')
+    } catch (err) {
+      console.error(err)
+      alert('Failed to update story name')
+    }
+  }
+
+  const handleTitleKeyDown = (e, storyId) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleSaveTitle(storyId)
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      handleCancelEditTitle()
     }
   }
 
@@ -103,15 +167,40 @@ function HomeView() {
                 stories.map((story) => (
                   <div key={story.id} className="story-card">
                     <div className="story-card-header">
-                      <h3 className="story-name">{story.name}</h3>
+                      <div className="story-name-container">
+                        {editingStoryId === story.id ? (
+                          <input
+                            type="text"
+                            className="story-name-input-edit"
+                            value={editingStoryName}
+                            onChange={(e) => setEditingStoryName(e.target.value)}
+                            onBlur={() => handleSaveTitle(story.id)}
+                            onKeyDown={(e) => handleTitleKeyDown(e, story.id)}
+                            autoFocus
+                          />
+                        ) : (
+                          <>
+                            <h3 
+                              className="story-name"
+                              onClick={() => handleStartEditTitle(story.id, story.name)}
+                              title="Click to edit"
+                            >
+                              {story.name}
+                            </h3>
+                            <button
+                              type="button"
+                              className="story-name-edit-icon"
+                              onClick={() => handleStartEditTitle(story.id, story.name)}
+                              aria-label="Edit story name"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M11.333 2.00001C11.5084 1.82465 11.7163 1.68571 11.9447 1.59189C12.1731 1.49807 12.4173 1.45142 12.6637 1.45468C12.91 1.45795 13.1532 1.51106 13.3788 1.61081C13.6044 1.71056 13.8078 1.85473 13.9773 2.03534C14.1468 2.21595 14.2789 2.42937 14.3659 2.66299C14.4529 2.89661 14.4929 3.14574 14.4833 3.39501C14.4737 3.64428 14.4147 3.88889 14.3101 4.11445C14.2055 4.34001 14.0576 4.54211 13.8753 4.70834L13.333 5.25001L10.75 2.66668L11.2913 2.12534L11.333 2.00001ZM9.66667 3.66668L12.25 6.25001L5.58333 12.9167H3V10.3333L9.66667 3.66668Z" fill="currentColor"/>
+                              </svg>
+                            </button>
+                          </>
+                        )}
+                      </div>
                       <div className="story-header-actions">
-                        <button
-                          type="button"
-                          className="story-delete-btn"
-                          onClick={() => handleDeleteStory(story.id)}
-                        >
-                          Remove
-                        </button>
                         <div className="story-badge">
                           {story.published ? (
                             <span className="badge published">Published</span>
@@ -119,16 +208,34 @@ function HomeView() {
                             <span className="badge draft">Draft</span>
                           )}
                         </div>
-                      </div>
-                    </div>
-                    <div className="story-card-info">
-                      <div className="story-info-item">
-                        <span className="info-label">Events:</span>
-                        <span className="info-value">{story.eventCount}</span>
-                      </div>
-                      <div className="story-info-item">
-                        <span className="info-label">Created:</span>
-                        <span className="info-value">{formatDate(story.dateCreated)}</span>
+                        <div className="story-menu-container" ref={(el) => (menuRefs.current[story.id] = el)}>
+                          <button
+                            type="button"
+                            className="story-menu-icon"
+                            onClick={() => toggleMenu(story.id)}
+                            aria-label="Story menu"
+                          >
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <circle cx="10" cy="4" r="1.5" fill="currentColor"/>
+                              <circle cx="10" cy="10" r="1.5" fill="currentColor"/>
+                              <circle cx="10" cy="16" r="1.5" fill="currentColor"/>
+                            </svg>
+                          </button>
+                          {openMenuId === story.id && (
+                            <div className="story-menu-dropdown">
+                              <button
+                                type="button"
+                                className="story-menu-item"
+                                onClick={() => {
+                                  handleDeleteStory(story.id)
+                                  setOpenMenuId(null)
+                                }}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="story-card-actions">

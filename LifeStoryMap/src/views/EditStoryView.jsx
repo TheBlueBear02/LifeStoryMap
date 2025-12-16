@@ -10,6 +10,7 @@ function EditStoryView({
   onMapCameraChange,
   lastMapClick,
   onPickingLocationChange,
+  onLastMapClickChange,
 }) {
   const navigate = useNavigate()
   const { storyId } = useParams()
@@ -22,6 +23,7 @@ function EditStoryView({
   const [draggingIndex, setDraggingIndex] = useState(null)
   const [activeEventIndex, setActiveEventIndex] = useState(null)
   const [isPickingLocation, setIsPickingLocation] = useState(false)
+  const [pickingStartTime, setPickingStartTime] = useState(null)
 
   const uploadImageFile = async (file) => {
     const reader = new FileReader()
@@ -333,25 +335,68 @@ function EditStoryView({
 
   const beginPickLocationForEvent = (index) => {
     setActiveEventIndex(index)
+    const startTime = Date.now()
+    setPickingStartTime(startTime)
     setIsPickingLocation(true)
     if (onPickingLocationChange) {
       onPickingLocationChange(true)
     }
+    // Clear any previous map click to ensure we only process new clicks
+    if (onLastMapClickChange) {
+      onLastMapClickChange(null)
+    }
+    // Clear marker location when starting to pick a new location
+    if (onMarkerLocationChange) {
+      onMarkerLocationChange(null)
+    }
+  }
 
-    const ev = events[index]
-    if (!ev || !onMarkerLocationChange || !onMapCameraChange) return
+  // Reverse geocode coordinates to get location name (city and country only)
+  const reverseGeocode = async (lng, lat) => {
+    const token = import.meta.env.VITE_MAPBOX_TOKEN
+    if (!token) {
+      return null
+    }
 
-    const coords = ev.location?.coordinates
-    if (coords && coords.lng != null && coords.lat != null) {
-      onMarkerLocationChange({ lng: coords.lng, lat: coords.lat })
-      const view = ev.location.mapView || {}
-      onMapCameraChange({
-        center: [coords.lng, coords.lat],
-        zoom: typeof view.zoom === 'number' ? view.zoom : (mapCamera?.zoom ?? 10),
-        pitch: typeof view.pitch === 'number' ? view.pitch : (mapCamera?.pitch ?? 0),
-        bearing:
-          typeof view.bearing === 'number' ? view.bearing : (mapCamera?.bearing ?? 0),
-      })
+    try {
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${token}`
+      const res = await fetch(url)
+      if (!res.ok) throw new Error('Failed to reverse geocode location')
+      const data = await res.json()
+      const feature = data.features && data.features[0]
+      if (!feature) return null
+
+      // Extract city and country from context
+      const context = feature.context || []
+      let city = null
+      let country = null
+
+      for (const item of context) {
+        if (item.id && item.id.startsWith('place.')) {
+          city = item.text
+        } else if (item.id && item.id.startsWith('country.')) {
+          country = item.text
+        }
+      }
+
+      // If we found both city and country, return them formatted
+      if (city && country) {
+        return `${city}, ${country}`
+      }
+      // If only country found, return country
+      if (country) {
+        return country
+      }
+      // If only city found, return city
+      if (city) {
+        return city
+      }
+      // Fallback to place_name if context doesn't have the info
+      return feature.place_name || null
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Reverse geocoding failed:', err)
+      return null
     }
   }
 
@@ -360,19 +405,32 @@ function EditStoryView({
     if (!isPickingLocation) return
     if (activeEventIndex == null) return
     if (!lastMapClick) return
+    // Only process clicks that happened after picking mode was activated
+    if (pickingStartTime == null || lastMapClick.timestamp < pickingStartTime) return
 
     const { lng, lat, camera } = lastMapClick
     if (lng == null || lat == null) return
 
-    updateEventField(activeEventIndex, ['location', 'coordinates', 'lat'], lat)
-    updateEventField(activeEventIndex, ['location', 'coordinates', 'lng'], lng)
+    // Capture the event index to use in async callback
+    const eventIndex = activeEventIndex
 
-    updateEventField(activeEventIndex, ['location', 'mapView'], {
+    // Update coordinates and map view immediately
+    updateEventField(eventIndex, ['location', 'coordinates', 'lat'], lat)
+    updateEventField(eventIndex, ['location', 'coordinates', 'lng'], lng)
+
+    updateEventField(eventIndex, ['location', 'mapView'], {
       zoom: typeof camera?.zoom === 'number' ? camera.zoom : (mapCamera?.zoom ?? 10),
       pitch: typeof camera?.pitch === 'number' ? camera.pitch : (mapCamera?.pitch ?? 0),
       bearing:
         typeof camera?.bearing === 'number' ? camera.bearing : (mapCamera?.bearing ?? 0),
       mapStyle: 'mapbox://styles/mapbox/streets-v12',
+    })
+
+    // Reverse geocode to get location name
+    reverseGeocode(lng, lat).then((locationName) => {
+      if (locationName) {
+        updateEventField(eventIndex, ['location', 'name'], locationName)
+      }
     })
 
     if (onMarkerLocationChange) {
@@ -382,11 +440,18 @@ function EditStoryView({
       onMapCameraChange(camera)
     }
 
+    // Reset picking state after processing the click
     setIsPickingLocation(false)
+    setActiveEventIndex(null)
+    setPickingStartTime(null)
     if (onPickingLocationChange) {
       onPickingLocationChange(false)
     }
-  }, [activeEventIndex, isPickingLocation, lastMapClick, onPickingLocationChange])
+    // Clear the lastMapClick to prevent re-processing
+    if (onLastMapClickChange) {
+      onLastMapClickChange(null)
+    }
+  }, [activeEventIndex, isPickingLocation, lastMapClick, pickingStartTime, onPickingLocationChange, onMarkerLocationChange, onMapCameraChange, onLastMapClickChange, mapCamera])
 
   const searchLocationForEvent = async (index, query) => {
     const trimmed = (query || '').trim()

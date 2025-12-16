@@ -1,9 +1,17 @@
 [
   {
     "id": "story-1",
-    "name": "יוסף - סיפור חיים",
+    "name": "דרכי חיי - סבתא רותי",
     "eventsFilePath": "events/events.json",
     "dateCreated": "2024-01-15T10:00:00.000Z",
+    "eventCount": 1,
+    "published": false
+  },
+  {
+    "id": "story-1765908493011",
+    "name": "a",
+    "eventsFilePath": "events/events-story-1765908493011.json",
+    "dateCreated": "2025-12-16T18:08:13.013Z",
     "eventCount": 1,
     "published": false
   }
