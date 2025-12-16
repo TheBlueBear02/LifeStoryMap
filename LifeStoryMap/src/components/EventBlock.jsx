@@ -44,7 +44,7 @@ function EventBlock({
               Remove
             </button>
             <button type="button" className="event-expand-btn" onClick={() => onToggleExpand(index)}>
-              {isExpanded ? 'Close' : 'Open'}
+              {isExpanded ? 'Close' : 'Edit'}
             </button>
           </div>
         </div>

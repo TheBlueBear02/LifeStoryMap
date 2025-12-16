@@ -8,13 +8,13 @@
       "dateEnd": "1930-05-14"
     },
     "location": {
-      "name": "Жуково, Zakarpattia Oblast, Ukraine",
+      "name": "Жуково, Ukraine",
       "coordinates": {
-        "lat": 48.65270440689838,
-        "lng": 22.628332083619313
+        "lat": 48.49652192472968,
+        "lng": 22.644355354918787
       },
       "mapView": {
-        "zoom": 8.855460442263736,
+        "zoom": 13.676243802092955,
         "pitch": 0,
         "bearing": 0,
         "mapStyle": "mapbox://styles/mapbox/streets-v12"
@@ -34,6 +34,120 @@
         "caption": "Kamino Logo",
         "urlOld": "/stories/images/1765910839513-yfnyix.jpg",
         "urlNew": "/stories/images/1765910882824-48viv3.png"
+      }
+    }
+  },
+  {
+    "eventId": "E002",
+    "eventType": "Event",
+    "title": "הכפר הסמוך",
+    "timeline": {
+      "dateStart": "",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "Лохово, Ukraine",
+      "coordinates": {
+        "lat": 48.50143046602915,
+        "lng": 22.67061204534616
+      },
+      "mapView": {
+        "zoom": 14.112922170449934,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "transition": {
+      "type": "ArcFlyWithPoint",
+      "durationSeconds": 3,
+      "sourceEventId": "E001",
+      "lineStyleKey": ""
+    },
+    "content": {
+      "textHtml": "",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    }
+  },
+  {
+    "eventId": "E004",
+    "eventType": "Event",
+    "title": "",
+    "timeline": {
+      "dateStart": "",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "Paris, France",
+      "coordinates": {
+        "lat": 48.853495,
+        "lng": 2.348392
+      },
+      "mapView": {
+        "zoom": 12,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "transition": {
+      "type": "ArcFlyWithPoint",
+      "durationSeconds": 3,
+      "sourceEventId": "E002",
+      "lineStyleKey": ""
+    },
+    "content": {
+      "textHtml": "",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    }
+  },
+  {
+    "eventId": "E005",
+    "eventType": "Event",
+    "title": "",
+    "timeline": {
+      "dateStart": "",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "",
+      "coordinates": {
+        "lat": null,
+        "lng": null
+      },
+      "mapView": {
+        "zoom": 10,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "transition": {
+      "type": "ArcFlyWithPoint",
+      "durationSeconds": 3,
+      "sourceEventId": "E004",
+      "lineStyleKey": ""
+    },
+    "content": {
+      "textHtml": "",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
       }
     }
   }

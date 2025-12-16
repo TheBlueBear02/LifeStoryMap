@@ -4,6 +4,70 @@
   gap: 1.25rem;
 }
 
+.events-list.is-dragging .events-list-item {
+  position: relative;
+}
+
+/* Show possible drop positions while dragging */
+.events-list.is-dragging .events-list-item::after {
+  content: '';
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: -0.65rem; /* sit in the flex gap between items */
+  height: 2px;
+  background: rgba(37, 99, 235, 0.28);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+/* Highlight the current drop target */
+.events-list.is-dragging .events-list-item.is-drop-target::after {
+  height: 3px;
+  background: rgba(37, 99, 235, 0.95);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+/* Make the dragged item visually distinct */
+.events-list.is-dragging .events-list-item.is-being-dragged {
+  opacity: 0.65;
+}
+
+/* Avoid the "Add event here" button catching pointer focus while dragging */
+.events-list.is-dragging .between-plus-btn {
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.events-list-end-dropzone {
+  position: relative;
+  height: 0;
+}
+
+/* End drop indicator (drop after the last event) */
+.events-list.is-dragging .events-list-end-dropzone {
+  height: 1.25rem;
+}
+
+.events-list.is-dragging .events-list-end-dropzone::after {
+  content: '';
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 2px;
+  background: rgba(37, 99, 235, 0.28);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.events-list.is-dragging .events-list-end-dropzone.is-drop-target::after {
+  height: 3px;
+  background: rgba(37, 99, 235, 0.95);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
 .between-plus-btn {
   display: block;
   margin: 0.5rem auto 0;

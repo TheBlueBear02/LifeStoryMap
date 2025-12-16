@@ -23,6 +23,8 @@ function App() {
   const [markerLocation, setMarkerLocation] = useState(null)
   const [lastMapClick, setLastMapClick] = useState(null)
   const [isPickingLocation, setIsPickingLocation] = useState(false)
+  const [events, setEvents] = useState([])
+  const [expandedEventIndex, setExpandedEventIndex] = useState(null)
 
   // Reset marker location and picking state when switching stories or navigating away from edit mode
   useEffect(() => {
@@ -30,11 +32,15 @@ function App() {
       setIsPickingLocation(false)
       setMarkerLocation(null)
       setLastMapClick(null)
+      setEvents([])
+      setExpandedEventIndex(null)
     } else {
       // Reset marker when story changes (but keep it if we're just expanding/collapsing events)
       setMarkerLocation(null)
       setLastMapClick(null)
       setIsPickingLocation(false)
+      setEvents([])
+      setExpandedEventIndex(null)
     }
   }, [currentStoryId, isEditMode])
 
@@ -92,6 +98,8 @@ function App() {
           markerLocation={isEditMode ? markerLocation : null}
           onMapClick={isEditMode ? handleMapClick : null}
           onCameraChange={handleCameraChange}
+          events={isEditMode ? events : []}
+          activeEventIndex={isEditMode ? expandedEventIndex : null}
         />
       </div>
       <div className="app-root">
@@ -108,6 +116,8 @@ function App() {
                 lastMapClick={lastMapClick}
                 onPickingLocationChange={setIsPickingLocation}
                 onLastMapClickChange={setLastMapClick}
+                onEventsChange={setEvents}
+                onExpandedEventIndexChange={setExpandedEventIndex}
               />
             )}
           />
@@ -122,6 +132,8 @@ function App() {
                 lastMapClick={lastMapClick}
                 onPickingLocationChange={setIsPickingLocation}
                 onLastMapClickChange={setLastMapClick}
+                onEventsChange={setEvents}
+                onExpandedEventIndexChange={setExpandedEventIndex}
               />
             )}
           />

@@ -25,8 +25,9 @@ export function createEmptyEvent(previousEventId) {
     location: {
       name: '',
       coordinates: {
-        lat: 0,
-        lng: 0,
+        // Start with no location; a pin should only appear after picking/searching.
+        lat: null,
+        lng: null,
       },
       mapView: {
         zoom: 10,

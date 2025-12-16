@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import EventBlock from '../components/EventBlock.jsx'
 import { createEmptyEvent, generateNextEventId } from '../utils/events.js'
@@ -11,6 +11,8 @@ function EditStoryView({
   lastMapClick,
   onPickingLocationChange,
   onLastMapClickChange,
+  onEventsChange,
+  onExpandedEventIndexChange,
 }) {
   const navigate = useNavigate()
   const { storyId } = useParams()
@@ -21,9 +23,11 @@ function EditStoryView({
   const [expandedIndexes, setExpandedIndexes] = useState(new Set())
   const [isDirty, setIsDirty] = useState(false)
   const [draggingIndex, setDraggingIndex] = useState(null)
+  const [dragOverTarget, setDragOverTarget] = useState(null) // number index or 'end'
   const [activeEventIndex, setActiveEventIndex] = useState(null)
   const [isPickingLocation, setIsPickingLocation] = useState(false)
   const [pickingStartTime, setPickingStartTime] = useState(null)
+  const cameraBeforeEventFocusRef = useRef(null)
 
   const uploadImageFile = async (file) => {
     const reader = new FileReader()
@@ -145,6 +149,9 @@ function EditStoryView({
         const initialEvents = Array.isArray(eventsData) ? eventsData : []
         setEvents(initialEvents)
         setIsDirty(false)
+        if (onEventsChange) {
+          onEventsChange(initialEvents)
+        }
       } catch (err) {
         console.error(err)
         setEvents([])
@@ -161,8 +168,61 @@ function EditStoryView({
       const next = new Set(prev)
       if (next.has(index)) {
         next.delete(index)
+        const remainingIndices = Array.from(next).sort((a, b) => b - a)
+        const nextActiveIndex = remainingIndices.length > 0 ? remainingIndices[0] : null
+
+        // If there are still expanded events, keep focus on the top-most expanded event.
+        if (onExpandedEventIndexChange) {
+          onExpandedEventIndexChange(nextActiveIndex)
+        }
+
+        if (nextActiveIndex != null) {
+          const ev = events[nextActiveIndex]
+          const coords = ev?.location?.coordinates
+          if (
+            ev &&
+            coords &&
+            coords.lng != null &&
+            coords.lat != null &&
+            onMarkerLocationChange &&
+            onMapCameraChange
+          ) {
+            onMarkerLocationChange({ lng: coords.lng, lat: coords.lat })
+            const view = ev.location.mapView || {}
+            onMapCameraChange({
+              center: [coords.lng, coords.lat],
+              zoom: typeof view.zoom === 'number' ? view.zoom : (mapCamera?.zoom ?? 10),
+              pitch: typeof view.pitch === 'number' ? view.pitch : (mapCamera?.pitch ?? 0),
+              bearing:
+                typeof view.bearing === 'number' ? view.bearing : (mapCamera?.bearing ?? 0),
+            })
+          }
+        } else {
+          // Closing the last expanded event: zoom back out to the camera we had before focusing.
+          if (onMapCameraChange && cameraBeforeEventFocusRef.current) {
+            onMapCameraChange(cameraBeforeEventFocusRef.current)
+          }
+          if (onMarkerLocationChange) {
+            onMarkerLocationChange(null)
+          }
+          cameraBeforeEventFocusRef.current = null
+        }
       } else {
+        // First expand: remember current camera so Close can restore it.
+        if (next.size === 0) {
+          cameraBeforeEventFocusRef.current = mapCamera
+            ? {
+                center: Array.isArray(mapCamera.center) ? [...mapCamera.center] : [0, 0],
+                zoom: typeof mapCamera.zoom === 'number' ? mapCamera.zoom : 3,
+                pitch: typeof mapCamera.pitch === 'number' ? mapCamera.pitch : 0,
+                bearing: typeof mapCamera.bearing === 'number' ? mapCamera.bearing : 0,
+              }
+            : null
+        }
         next.add(index)
+        if (onExpandedEventIndexChange) {
+          onExpandedEventIndexChange(index)
+        }
         // When expanding an event, optionally sync map view to its saved location
         const ev = events[index]
         const coords = ev?.location?.coordinates
@@ -190,8 +250,8 @@ function EditStoryView({
   }
 
   const updateEventField = (index, path, value) => {
-    setEvents((prev) =>
-      prev.map((event, i) => {
+    setEvents((prev) => {
+      const updated = prev.map((event, i) => {
         if (i !== index) return event
 
         const clone = structuredClone ? structuredClone(event) : JSON.parse(JSON.stringify(event))
@@ -227,50 +287,57 @@ function EditStoryView({
         }
 
         return clone
-      }),
-    )
+      })
+      if (onEventsChange) {
+        onEventsChange(updated)
+      }
+      return updated
+    })
     setIsDirty(true)
   }
 
   const insertEventAt = (insertIndex) => {
     setEvents((prev) => {
+      let nextEvents
       if (prev.length === 0) {
-        return [createEmptyEvent(null)]
-      }
-
-      const previous = prev[insertIndex] || prev[prev.length - 1]
-      const previousEventId = previous?.eventId || null
-      const newEventId = generateNextEventId(prev)
-      const newEvent = {
-        ...createEmptyEvent(previousEventId),
-        eventId: newEventId,
-        transition: {
-          ...createEmptyEvent(previousEventId).transition,
-          sourceEventId: previousEventId,
-        },
-      }
-
-      const nextEvents = [...prev]
-      nextEvents.splice(insertIndex + 1, 0, newEvent)
-
-      const nextIndex = insertIndex + 2
-      if (nextIndex < nextEvents.length) {
-        const nextEvent = { ...nextEvents[nextIndex] }
-        nextEvent.transition = {
-          ...(nextEvent.transition || {}),
-          sourceEventId: newEventId,
+        nextEvents = [createEmptyEvent(null)]
+      } else {
+        const previous = prev[insertIndex] || prev[prev.length - 1]
+        const previousEventId = previous?.eventId || null
+        const newEventId = generateNextEventId(prev)
+        const newEvent = {
+          ...createEmptyEvent(previousEventId),
+          eventId: newEventId,
+          transition: {
+            ...createEmptyEvent(previousEventId).transition,
+            sourceEventId: previousEventId,
+          },
         }
-        nextEvents[nextIndex] = nextEvent
-      }
 
-      const newIndex = insertIndex + 1
-      const inserted = { ...nextEvents[newIndex] }
-      inserted.transition = {
-        ...(inserted.transition || {}),
-        sourceEventId: previousEventId,
-      }
-      nextEvents[newIndex] = inserted
+        nextEvents = [...prev]
+        nextEvents.splice(insertIndex + 1, 0, newEvent)
 
+        const nextIndex = insertIndex + 2
+        if (nextIndex < nextEvents.length) {
+          const nextEvent = { ...nextEvents[nextIndex] }
+          nextEvent.transition = {
+            ...(nextEvent.transition || {}),
+            sourceEventId: newEventId,
+          }
+          nextEvents[nextIndex] = nextEvent
+        }
+
+        const newIndex = insertIndex + 1
+        const inserted = { ...nextEvents[newIndex] }
+        inserted.transition = {
+          ...(inserted.transition || {}),
+          sourceEventId: previousEventId,
+        }
+        nextEvents[newIndex] = inserted
+      }
+      if (onEventsChange) {
+        onEventsChange(nextEvents)
+      }
       return nextEvents
     })
     setIsDirty(true)
@@ -278,7 +345,11 @@ function EditStoryView({
 
   const insertEventAtEnd = () => {
     if (events.length === 0) {
-      setEvents([createEmptyEvent(null)])
+      const newEvents = [createEmptyEvent(null)]
+      setEvents(newEvents)
+      if (onEventsChange) {
+        onEventsChange(newEvents)
+      }
       setIsDirty(true)
       return
     }
@@ -316,6 +387,7 @@ function EditStoryView({
 
   const handleDragStart = (index, event) => {
     setDraggingIndex(index)
+    setDragOverTarget(index)
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move'
       event.dataTransfer.setData('text/plain', String(index))
@@ -329,25 +401,54 @@ function EditStoryView({
     }
   }
 
+  const handleDragOverItem = (targetIndex, event) => {
+    handleDragOver(event)
+    if (draggingIndex == null) return
+    if (dragOverTarget !== targetIndex) {
+      setDragOverTarget(targetIndex)
+    }
+  }
+
+  const handleDragOverEnd = (event) => {
+    handleDragOver(event)
+    if (draggingIndex == null) return
+    if (dragOverTarget !== 'end') {
+      setDragOverTarget('end')
+    }
+  }
+
   const handleDropOnItem = (targetIndex, event) => {
     event.preventDefault()
-    setEvents((prev) => reorderWithUpdatedTransitions(prev, draggingIndex, targetIndex))
+    setEvents((prev) => {
+      const updated = reorderWithUpdatedTransitions(prev, draggingIndex, targetIndex)
+      if (onEventsChange) {
+        onEventsChange(updated)
+      }
+      return updated
+    })
     setDraggingIndex(null)
+    setDragOverTarget(null)
     setIsDirty(true)
   }
 
   const handleDropAtEnd = (event) => {
     event.preventDefault()
     if (draggingIndex == null) return
-    setEvents((prev) =>
-      reorderWithUpdatedTransitions(prev, draggingIndex, prev.length - 1),
-    )
+    setEvents((prev) => {
+      const updated = reorderWithUpdatedTransitions(prev, draggingIndex, prev.length - 1)
+      if (onEventsChange) {
+        onEventsChange(updated)
+      }
+      return updated
+    })
     setDraggingIndex(null)
+    setDragOverTarget(null)
     setIsDirty(true)
   }
 
   const handleDragEnd = () => {
     setDraggingIndex(null)
+    setDragOverTarget(null)
   }
 
   const beginPickLocationForEvent = (index) => {
@@ -543,6 +644,9 @@ function EditStoryView({
         next[index] = updatedNext
       }
 
+      if (onEventsChange) {
+        onEventsChange(next)
+      }
       return next
     })
 
@@ -552,6 +656,14 @@ function EditStoryView({
         if (i < index) updated.add(i)
         else if (i > index) updated.add(i - 1)
       })
+      if (onExpandedEventIndexChange) {
+        if (updated.size > 0) {
+          const expandedArray = Array.from(updated).sort((a, b) => b - a)
+          onExpandedEventIndexChange(expandedArray[0])
+        } else {
+          onExpandedEventIndexChange(null)
+        }
+      }
       return updated
     })
     setIsDirty(true)
@@ -571,6 +683,9 @@ function EditStoryView({
       if (!res.ok) throw new Error('Failed to save')
       setSaveStatus('saved')
       setIsDirty(false)
+      if (onEventsChange) {
+        onEventsChange(events)
+      }
       setTimeout(() => setSaveStatus('idle'), 1500)
     } catch (err) {
       console.error(err)
@@ -583,7 +698,20 @@ function EditStoryView({
     <>
       <header className="app-header">
         <div className="header-top-row">
-          <button type="button" className="back-btn" onClick={() => navigate('/')} title="Back">
+          <button
+            type="button"
+            className="back-btn"
+            onClick={() => {
+              if (
+                isDirty &&
+                !window.confirm('You have unsaved changes. Leave this page without saving?')
+              ) {
+                return
+              }
+              navigate('/')
+            }}
+            title="Back"
+          >
             <span aria-label="Back" role="img" style={{ marginRight: '0.4em' }}>←</span>back
           </button>
         </div>
@@ -615,7 +743,7 @@ function EditStoryView({
         </div>
       </header>
 
-      <main className="events-list">
+      <main className={`events-list${draggingIndex != null ? ' is-dragging' : ''}`}>
         {loading && (
           <div className="empty-state">
             <p>Loading events from events.json...</p>
@@ -626,10 +754,16 @@ function EditStoryView({
           events.map((event, index) => (
             <div
               key={event.eventId || index}
-              className="events-list-item"
+              className={[
+                'events-list-item',
+                draggingIndex != null && dragOverTarget === index ? 'is-drop-target' : '',
+                draggingIndex === index ? 'is-being-dragged' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
               draggable
               onDragStart={(e) => handleDragStart(index, e)}
-              onDragOver={handleDragOver}
+              onDragOver={(e) => handleDragOverItem(index, e)}
               onDrop={(e) => handleDropOnItem(index, e)}
               onDragEnd={handleDragEnd}
             >
@@ -673,11 +807,15 @@ function EditStoryView({
 
         {!loading && events.length > 0 && (
           <div
-            className="events-list-end-dropzone"
-            onDragOver={handleDragOver}
+            className={[
+              'events-list-end-dropzone',
+              draggingIndex != null && dragOverTarget === 'end' ? 'is-drop-target' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            onDragOver={handleDragOverEnd}
             onDrop={handleDropAtEnd}
           >
-            <span>Drop here to move event to the end</span>
           </div>
         )}
       </main>

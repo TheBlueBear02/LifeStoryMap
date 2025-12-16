@@ -80,6 +80,7 @@
   flex: 1;
   width: 420px;
   margin: 0;
+  margin-right: 20px;
   padding: 1.5rem 1.5rem 4rem;
   color: #111827;
   min-height: 100vh;
@@ -183,7 +184,8 @@
     100% 100%,
     100% 100%;
   border-left: 1px solid rgba(193, 163, 106, 0.4);
-  box-shadow: -16px 0 40px rgba(15, 23, 42, 0.18);
+  box-shadow: 4px 0 12px rgba(0, 0, 0, 0.5), 2px 0 6px rgba(0, 0, 0, 0.1);
+
   overflow-y: auto;
   overflow-x: hidden;
   padding-right: 17px;
@@ -207,4 +209,16 @@
 
 .app-root::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
+}
+
+/* Phone view: Hide map and show only sidebar */
+@media (max-width: 768px) {
+  .map-root {
+    display: none;
+  }
+
+  .app-root {
+    width: 100%;
+    max-width: 100%;
+  }
 }
