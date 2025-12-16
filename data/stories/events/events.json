@@ -2,10 +2,10 @@
   {
     "eventId": "E001",
     "eventType": "Event",
-    "title": "",
+    "title": "אירוע ראשון",
     "timeline": {
-      "dateStart": "",
-      "dateEnd": ""
+      "dateStart": "1930-05-14",
+      "dateEnd": "1930-05-14"
     },
     "location": {
       "name": "Жуково, Zakarpattia Oblast, Ukraine",
@@ -21,10 +21,10 @@
       }
     },
     "transition": {
-      "type": "ArcFlyWithPoint",
-      "durationSeconds": 7,
+      "type": "FlyTo",
+      "durationSeconds": 4,
       "sourceEventId": null,
-      "lineStyleKey": ""
+      "lineStyleKey": "GoldenAgePath"
     },
     "content": {
       "textHtml": "זה האירוע הראשון שמישהו יוצר בפלטפורמה הזו!\n\nנסיון",

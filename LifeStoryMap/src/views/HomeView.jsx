@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import logoImage from '../assets/Logos/logo no name no bg.png'
 
 function HomeView() {
   const [stories, setStories] = useState([])
@@ -151,8 +152,17 @@ function HomeView() {
   return (
     <div className="home-view">
       <div className="home-content">
-        <h1>Life Story Maps</h1>
-        <p className="home-subtitle">Create and manage your life story maps</p>
+        <div className="home-logo-container" style={{ display: "flex", justifyContent: "center"}}>
+          <img
+            src={logoImage}
+            alt="Life Story Map Logo"
+            className="home-logo"
+            style={{ width: 320, height: "auto" }}
+          />
+        </div>
+        <h1>KAMINO</h1>
+        <div className="home-title-separator"></div>
+        <p className="home-subtitle">YOUR DIGITAL FAMILY STORY</p>
 
         {loading ? (
           <div className="stories-loading">Loading stories...</div>
