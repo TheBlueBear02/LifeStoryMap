@@ -8,11 +8,19 @@
     "published": false
   },
   {
-    "id": "story-1765836246224",
-    "name": "דניס",
-    "eventsFilePath": "events/events-story-1765836246224.json",
-    "dateCreated": "2025-12-15T22:04:06.225Z",
-    "eventCount": 1,
+    "id": "story-1765840736766",
+    "name": "a",
+    "eventsFilePath": "events/events-story-1765840736766.json",
+    "dateCreated": "2025-12-15T23:18:56.766Z",
+    "eventCount": 0,
+    "published": false
+  },
+  {
+    "id": "story-1765840739785",
+    "name": "b",
+    "eventsFilePath": "events/events-story-1765840739785.json",
+    "dateCreated": "2025-12-15T23:18:59.786Z",
+    "eventCount": 0,
     "published": false
   }
 ]

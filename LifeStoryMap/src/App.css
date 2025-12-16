@@ -69,7 +69,7 @@
   flex: 1;
   width: 420px;
   margin: 0;
-  padding: 1.5rem .5rem 4rem;
+  padding: 1.5rem 1.5rem 4rem;
   color: #111827;
   min-height: 100vh;
   box-sizing: border-box;
@@ -82,7 +82,7 @@
 }
 
 .app-root::-webkit-scrollbar {
-  width: 10px;
+  width: 8px;
 }
 
 .app-root::-webkit-scrollbar-track {
@@ -103,13 +103,25 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  padding: 2rem;
+  padding: 1rem 0;
 }
 
 .create-story-btn-wrapper {
   display: flex;
   justify-content: center;
   width: 100%;
+}
+
+.story-slots-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.story-slots-container .between-plus-btn {
+  width: 100%;
+  margin: 0;
 }
 
 .home-content {
@@ -259,6 +271,7 @@
   padding: 0.5rem 1rem;
   flex: 3;
   text-align: center;
+  justify-content: center;
   min-width: 0;
 }
 
