@@ -6,6 +6,17 @@
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
+.map-root {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+.mapbox-map-root {
+  width: 100%;
+  height: 100%;
+}
+
 .sidebar-menu {
   width: 67px;
   background: white;
@@ -79,6 +90,8 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding-right: 17px;
+  position: relative;
+  z-index: 1;
 }
 
 .app-root::-webkit-scrollbar {
@@ -566,11 +579,36 @@
   flex: 0 0 60%;
   text-align: right;
   min-width: 0;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }
 
 .event-location-input {
-  width: 100%;
+  flex: 1;
   font-size: 0.9rem;
+  min-width: 0;
+}
+
+.choose-location-btn {
+  flex-shrink: 0;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.choose-location-btn:hover {
+  background: #1d4ed8;
+}
+
+.choose-location-btn:active {
+  background: #1e40af;
 }
 
 input[type='text'],

@@ -4,23 +4,7 @@
     "name": "יוסף - סיפור חיים",
     "eventsFilePath": "events/events.json",
     "dateCreated": "2024-01-15T10:00:00.000Z",
-    "eventCount": 4,
-    "published": false
-  },
-  {
-    "id": "story-1765840736766",
-    "name": "a",
-    "eventsFilePath": "events/events-story-1765840736766.json",
-    "dateCreated": "2025-12-15T23:18:56.766Z",
-    "eventCount": 0,
-    "published": false
-  },
-  {
-    "id": "story-1765840739785",
-    "name": "b",
-    "eventsFilePath": "events/events-story-1765840739785.json",
-    "dateCreated": "2025-12-15T23:18:59.786Z",
-    "eventCount": 0,
+    "eventCount": 1,
     "published": false
   }
 ]

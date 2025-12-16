@@ -8,6 +8,8 @@ function EventBlock({
   onUploadComparisonImage,
   onInsertAfter,
   onDelete,
+  onBeginPickLocation,
+  onSearchLocation,
 }) {
   const handleInputChange = (path, value) => {
     onChangeField(index, path, value)
@@ -85,7 +87,25 @@ function EventBlock({
               placeholder="Location name"
               value={event.location?.name || ''}
               onChange={(e) => handleInputChange(['location', 'name'], e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && onSearchLocation) {
+                  e.preventDefault()
+                  onSearchLocation(index, e.currentTarget.value)
+                }
+              }}
             />
+            <button
+              type="button"
+              className="choose-location-btn"
+              onClick={() => {
+                if (onBeginPickLocation) {
+                  onBeginPickLocation(index)
+                }
+              }}
+              title="Choose location on map"
+            >
+              📍
+            </button>
           </div>
         </div>
       </div>

@@ -3,7 +3,14 @@ import { useNavigate, useParams } from 'react-router-dom'
 import EventBlock from '../components/EventBlock.jsx'
 import { createEmptyEvent, generateNextEventId } from '../utils/events.js'
 
-function EditStoryView() {
+function EditStoryView({
+  mapCamera,
+  markerLocation,
+  onMarkerLocationChange,
+  onMapCameraChange,
+  lastMapClick,
+  onPickingLocationChange,
+}) {
   const navigate = useNavigate()
   const { storyId } = useParams()
   const [events, setEvents] = useState([])
@@ -13,6 +20,8 @@ function EditStoryView() {
   const [expandedIndexes, setExpandedIndexes] = useState(new Set())
   const [isDirty, setIsDirty] = useState(false)
   const [draggingIndex, setDraggingIndex] = useState(null)
+  const [activeEventIndex, setActiveEventIndex] = useState(null)
+  const [isPickingLocation, setIsPickingLocation] = useState(false)
 
   const uploadImageFile = async (file) => {
     const reader = new FileReader()
@@ -113,7 +122,7 @@ function EditStoryView() {
 
         const eventsRes = await fetch(`/api/stories/${storyId}/events`)
         if (!eventsRes.ok) throw new Error('Failed to load events')
-        const eventsData = await res.json()
+        const eventsData = await eventsRes.json()
         const initialEvents = Array.isArray(eventsData) ? eventsData : []
         setEvents(initialEvents)
         setIsDirty(false)
@@ -135,6 +144,27 @@ function EditStoryView() {
         next.delete(index)
       } else {
         next.add(index)
+        // When expanding an event, optionally sync map view to its saved location
+        const ev = events[index]
+        const coords = ev?.location?.coordinates
+        if (
+          ev &&
+          coords &&
+          coords.lng != null &&
+          coords.lat != null &&
+          onMarkerLocationChange &&
+          onMapCameraChange
+        ) {
+          onMarkerLocationChange({ lng: coords.lng, lat: coords.lat })
+          const view = ev.location.mapView || {}
+          onMapCameraChange({
+            center: [coords.lng, coords.lat],
+            zoom: typeof view.zoom === 'number' ? view.zoom : (mapCamera?.zoom ?? 10),
+            pitch: typeof view.pitch === 'number' ? view.pitch : (mapCamera?.pitch ?? 0),
+            bearing:
+              typeof view.bearing === 'number' ? view.bearing : (mapCamera?.bearing ?? 0),
+          })
+        }
       }
       return next
     })
@@ -301,6 +331,117 @@ function EditStoryView() {
     setDraggingIndex(null)
   }
 
+  const beginPickLocationForEvent = (index) => {
+    setActiveEventIndex(index)
+    setIsPickingLocation(true)
+    if (onPickingLocationChange) {
+      onPickingLocationChange(true)
+    }
+
+    const ev = events[index]
+    if (!ev || !onMarkerLocationChange || !onMapCameraChange) return
+
+    const coords = ev.location?.coordinates
+    if (coords && coords.lng != null && coords.lat != null) {
+      onMarkerLocationChange({ lng: coords.lng, lat: coords.lat })
+      const view = ev.location.mapView || {}
+      onMapCameraChange({
+        center: [coords.lng, coords.lat],
+        zoom: typeof view.zoom === 'number' ? view.zoom : (mapCamera?.zoom ?? 10),
+        pitch: typeof view.pitch === 'number' ? view.pitch : (mapCamera?.pitch ?? 0),
+        bearing:
+          typeof view.bearing === 'number' ? view.bearing : (mapCamera?.bearing ?? 0),
+      })
+    }
+  }
+
+  // When the user clicks on the map while picking a location, update the active event.
+  useEffect(() => {
+    if (!isPickingLocation) return
+    if (activeEventIndex == null) return
+    if (!lastMapClick) return
+
+    const { lng, lat, camera } = lastMapClick
+    if (lng == null || lat == null) return
+
+    updateEventField(activeEventIndex, ['location', 'coordinates', 'lat'], lat)
+    updateEventField(activeEventIndex, ['location', 'coordinates', 'lng'], lng)
+
+    updateEventField(activeEventIndex, ['location', 'mapView'], {
+      zoom: typeof camera?.zoom === 'number' ? camera.zoom : (mapCamera?.zoom ?? 10),
+      pitch: typeof camera?.pitch === 'number' ? camera.pitch : (mapCamera?.pitch ?? 0),
+      bearing:
+        typeof camera?.bearing === 'number' ? camera.bearing : (mapCamera?.bearing ?? 0),
+      mapStyle: 'mapbox://styles/mapbox/streets-v12',
+    })
+
+    if (onMarkerLocationChange) {
+      onMarkerLocationChange({ lng, lat })
+    }
+    if (onMapCameraChange && camera) {
+      onMapCameraChange(camera)
+    }
+
+    setIsPickingLocation(false)
+    if (onPickingLocationChange) {
+      onPickingLocationChange(false)
+    }
+  }, [activeEventIndex, isPickingLocation, lastMapClick, onPickingLocationChange])
+
+  const searchLocationForEvent = async (index, query) => {
+    const trimmed = (query || '').trim()
+    if (!trimmed) return
+
+    const token = import.meta.env.VITE_MAPBOX_TOKEN
+    if (!token) {
+      window.alert('Map search is not available because VITE_MAPBOX_TOKEN is not set.')
+      return
+    }
+
+    try {
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+        trimmed,
+      )}.json?access_token=${token}&limit=1`
+      const res = await fetch(url)
+      if (!res.ok) throw new Error('Failed to search location')
+      const data = await res.json()
+      const feature = data.features && data.features[0]
+      if (!feature || !Array.isArray(feature.center)) {
+        window.alert('No matching place found on the map.')
+        return
+      }
+
+      const [lng, lat] = feature.center
+      const normalizedName = feature.place_name || trimmed
+
+      updateEventField(index, ['location', 'name'], normalizedName)
+      updateEventField(index, ['location', 'coordinates', 'lat'], lat)
+      updateEventField(index, ['location', 'coordinates', 'lng'], lng)
+      updateEventField(index, ['location', 'mapView'], {
+        zoom: 12,
+        pitch: 0,
+        bearing: 0,
+        mapStyle: 'mapbox://styles/mapbox/streets-v12',
+      })
+
+      if (onMarkerLocationChange) {
+        onMarkerLocationChange({ lng, lat })
+      }
+      if (onMapCameraChange) {
+        onMapCameraChange({
+          center: [lng, lat],
+          zoom: 12,
+          pitch: 0,
+          bearing: 0,
+        })
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(err)
+      window.alert('Failed to search for this place on the map.')
+    }
+  }
+
   const deleteEventAt = (index) => {
     if (!window.confirm('Are you sure you want to delete this event?')) return
 
@@ -420,6 +561,8 @@ function EditStoryView() {
                 onUploadComparisonImage={handleUploadComparisonImage}
                 onInsertAfter={insertEventAt}
                 onDelete={deleteEventAt}
+                onBeginPickLocation={beginPickLocationForEvent}
+                onSearchLocation={searchLocationForEvent}
               />
 
               <button
