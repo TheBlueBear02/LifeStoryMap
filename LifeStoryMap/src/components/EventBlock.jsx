@@ -142,12 +142,14 @@ function EventBlock({
                 />
               </label>
               <label>
-                Line style key
+                Line style
                 <select
                   value={event.transition?.lineStyleKey || ''}
                   onChange={(e) => handleInputChange(['transition', 'lineStyleKey'], e.target.value)}
                 >
-                  <option value="">None</option>
+                  <option value="">Default (solid)</option>
+                  <option value="Dashed">Dashed</option>
+                  <option value="Dotted">Dotted</option>
                   <option value="GoldenAgePath">Golden age path</option>
                   <option value="MemoryTrail">Memory trail</option>
                   <option value="ImportantJump">Important jump</option>

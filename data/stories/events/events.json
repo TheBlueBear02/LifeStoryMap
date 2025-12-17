@@ -2,10 +2,10 @@
   {
     "eventId": "E001",
     "eventType": "Event",
-    "title": "אירוע ראשון",
+    "title": "לידה וילדות",
     "timeline": {
-      "dateStart": "1930-05-14",
-      "dateEnd": "1930-05-14"
+      "dateStart": "1930-06-11",
+      "dateEnd": "1930-06-11"
     },
     "location": {
       "name": "Жуково, Ukraine",
@@ -24,26 +24,26 @@
       "type": "FlyTo",
       "durationSeconds": 4,
       "sourceEventId": null,
-      "lineStyleKey": "GoldenAgePath"
+      "lineStyleKey": ""
     },
     "content": {
-      "textHtml": "זה האירוע הראשון שמישהו יוצר בפלטפורמה הזו!\n\nנסיון",
+      "textHtml": "שמי רותי רבקה. נקראתי רותי על שם רות המואביה, כי נולדתי בחג השבועות. אני הבת היחידה והקטנה בילדי המשפחה. נולדתי ב11.6.1930.\n\nגרנו בכפר \"ז'וקוב\" שהיה אז בתחומי צ'כוסלובקיה (כיום במערב אוקרינה בסמוך לגבול עם סלובקיה). כפר לא גדול שאוכלוסייתו היתה של דוברי רוסית. בכל הכפר גרו בסך הכל שש משפחות יהודיות.\nמיעוט היהודים בכפר הוא הסיבה שיצאנו לא אחת ללוחוב או למונקטש לבית הכנסת או למקווה.\n\nהיחסים בינינו ובין שכנינו הנוצרים היו טובים יחסי כבוד הדדים היו בינינו. עסקנו גם במסחר, והגויים היו באים לקנות במכולת בביתנו. לא הייתה אנטישמיות בכלל. היו יחסי שכנות תקינים בהחלט.",
       "media": [],
       "imageComparison": {
         "enabled": false,
-        "caption": "Kamino Logo",
-        "urlOld": "/stories/images/1765910839513-yfnyix.jpg",
-        "urlNew": "/stories/images/1765910882824-48viv3.png"
+        "caption": "בית ילדותי בכפר ז'וקוב",
+        "urlOld": "/stories/images/1765922894161-tbd73y.jpg",
+        "urlNew": "/stories/images/1765922898763-w3d6ks.jpg"
       }
     }
   },
   {
     "eventId": "E002",
     "eventType": "Event",
-    "title": "הכפר הסמוך",
+    "title": "הכפר הסמוך לוחוב",
     "timeline": {
-      "dateStart": "",
-      "dateEnd": ""
+      "dateStart": "1935-06-11",
+      "dateEnd": "1935-06-11"
     },
     "location": {
       "name": "Лохово, Ukraine",
@@ -62,10 +62,10 @@
       "type": "ArcFlyWithPoint",
       "durationSeconds": 3,
       "sourceEventId": "E001",
-      "lineStyleKey": ""
+      "lineStyleKey": "Dashed"
     },
     "content": {
-      "textHtml": "",
+      "textHtml": "כשאחיי היו צעירים, לא היה מניין בכפר שלנו, והם, יחד עם אבי, הלכו ברגל כל שבת וחג להתפלל בבית הכנסת שהיה בחצר של סבתא בלוחוב.\n\nבלוחוב גרה סבתא פייגה, אם אמי, אצל דודי, שלמה ומדי פעם היתה מבלה אצלנו את השבת.\nאמי חוווה נולדה בלוחוב בשנת 1893 לפייגה ומרדכי.",
       "media": [],
       "imageComparison": {
         "enabled": false,
@@ -78,16 +78,16 @@
   {
     "eventId": "E004",
     "eventType": "Event",
-    "title": "",
+    "title": "החיים תחת הכיבוש ההונגרי",
     "timeline": {
-      "dateStart": "",
-      "dateEnd": ""
+      "dateStart": "1938-11-11",
+      "dateEnd": "1938-11-11"
     },
     "location": {
-      "name": "Paris, France",
+      "name": "Жуково, Zakarpattia Oblast, Ukraine",
       "coordinates": {
-        "lat": 48.853495,
-        "lng": 2.348392
+        "lat": 48.496475,
+        "lng": 22.644596
       },
       "mapView": {
         "zoom": 12,
@@ -100,48 +100,10 @@
       "type": "ArcFlyWithPoint",
       "durationSeconds": 3,
       "sourceEventId": "E002",
-      "lineStyleKey": ""
+      "lineStyleKey": "Dashed"
     },
     "content": {
-      "textHtml": "",
-      "media": [],
-      "imageComparison": {
-        "enabled": false,
-        "caption": "",
-        "urlOld": "",
-        "urlNew": ""
-      }
-    }
-  },
-  {
-    "eventId": "E005",
-    "eventType": "Event",
-    "title": "",
-    "timeline": {
-      "dateStart": "",
-      "dateEnd": ""
-    },
-    "location": {
-      "name": "",
-      "coordinates": {
-        "lat": null,
-        "lng": null
-      },
-      "mapView": {
-        "zoom": 10,
-        "pitch": 0,
-        "bearing": 0,
-        "mapStyle": "mapbox://styles/mapbox/streets-v12"
-      }
-    },
-    "transition": {
-      "type": "ArcFlyWithPoint",
-      "durationSeconds": 3,
-      "sourceEventId": "E004",
-      "lineStyleKey": ""
-    },
-    "content": {
-      "textHtml": "",
+      "textHtml": "בשנת 1938 כבשו ההונגרים את צ'כוסלובקיה והביאו איתם את המלחמהץ בן לילה הפכנו מצ'כים להונגריםף ודגלים הונגריים החליפו את הדגלים הצ'כיים. אמא, כמו שאר היהודים, מיהרה ותפרה דגל הונגריף אדום לבן וירוק, והאחים תלו אותו על גג הבית.\n\nלאט לאט הונחתו על היהודים הגבלות וגזרות שהכבידו מאוד על החיים.אסור היה לנוצרי לעבוד אצל היהודים, וכך נפרדנו מהעוזרת מריה ומהמכונאי. אז גם החלו הקצבות עם נקודות. ההונגרים בנו חנות גדולה באמצע הכפר וכולם הלכו לקנות שם. על היהודים נאסר למכור את המוצרים שבהקצבות, ואלה היו כמובן רוב המצרכים החיוניים, המזון הבסיסי, אותו נתנו במנות תמורת תלושים. כל יתר המצרכים, כמו שרכי נעלים וגפרורים השו לנו להחזיק בחנות, כדי שנמשיך לשלם מיסים.",
       "media": [],
       "imageComparison": {
         "enabled": false,

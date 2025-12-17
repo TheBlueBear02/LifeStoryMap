@@ -17,8 +17,8 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const markerRef = useRef(null)
-  const eventMarkersRef = useRef(new Map()) // Map of event index -> { marker, color }
-  const latestEventPathCoordsRef = useRef([]) // latest [[lng,lat], ...] for the path
+  const eventMarkersRef = useRef(new Map()) // Map of coordKey -> { marker, color }
+  const latestEventPathGeoJsonRef = useRef({ type: 'FeatureCollection', features: [] }) // latest FeatureCollection for the path
   const isSyncingFromPropsRef = useRef(false) // Track if we're syncing from props to avoid feedback loop
   
   // Store callbacks in refs to avoid re-initializing the map when they change
@@ -71,32 +71,95 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
 
     // Add event path source and layer after style loads
     const setupEventPath = () => {
-      if (!map.getSource('event-path')) {
-        // Add empty GeoJSON source for the path
-        map.addSource('event-path', {
-          type: 'geojson',
-          data: {
-            type: 'FeatureCollection',
-            features: [],
-          },
-        })
+      const sourceId = 'event-path'
 
-        // Add line layer
+      const ensureSource = () => {
+        if (!map.getSource(sourceId)) {
+          map.addSource(sourceId, {
+            type: 'geojson',
+            data: latestEventPathGeoJsonRef.current,
+          })
+        }
+      }
+
+      const layers = [
+        {
+          id: 'event-path-solid',
+          filter: ['!in', 'styleKey', 'Dashed', 'Dotted', 'GoldenAgePath', 'MemoryTrail', 'ImportantJump'],
+          paint: {
+            'line-color': '#3b82f6',
+            'line-width': 6,
+            'line-opacity': 0.8,
+          },
+        },
+        {
+          id: 'event-path-dashed',
+          filter: ['==', 'styleKey', 'Dashed'],
+          paint: {
+            'line-color': '#3b82f6',
+            'line-width': 6,
+            'line-opacity': 0.8,
+            'line-dasharray': [2, 2],
+          },
+        },
+        {
+          id: 'event-path-dotted',
+          filter: ['==', 'styleKey', 'Dotted'],
+          paint: {
+            'line-color': '#3b82f6',
+            'line-width': 6,
+            'line-opacity': 0.8,
+            'line-dasharray': [0.6, 1.6],
+          },
+        },
+        {
+          id: 'event-path-golden-age',
+          filter: ['==', 'styleKey', 'GoldenAgePath'],
+          paint: {
+            'line-color': '#f59e0b',
+            'line-width': 6,
+            'line-opacity': 0.85,
+            'line-dasharray': [2.5, 1.5],
+          },
+        },
+        {
+          id: 'event-path-memory-trail',
+          filter: ['==', 'styleKey', 'MemoryTrail'],
+          paint: {
+            'line-color': '#a855f7',
+            'line-width': 6,
+            'line-opacity': 0.85,
+            'line-dasharray': [0.6, 1.6],
+          },
+        },
+        {
+          id: 'event-path-important-jump',
+          filter: ['==', 'styleKey', 'ImportantJump'],
+          paint: {
+            'line-color': '#ef4444',
+            'line-width': 6,
+            'line-opacity': 0.9,
+            'line-dasharray': [4, 2],
+          },
+        },
+      ]
+
+      ensureSource()
+
+      layers.forEach((layer) => {
+        if (map.getLayer(layer.id)) return
         map.addLayer({
-          id: 'event-path',
+          id: layer.id,
           type: 'line',
-          source: 'event-path',
+          source: sourceId,
+          filter: layer.filter,
           layout: {
             'line-join': 'round',
             'line-cap': 'round',
           },
-          paint: {
-            'line-color': '#3b82f6', // Blue color for better visibility
-            'line-width': 6, // Increased from 2 to 4
-            'line-opacity': 0.8, // Increased from 0.6 to 0.8
-          },
+          paint: layer.paint,
         })
-      }
+      })
     }
 
     // Setup path when style loads
@@ -165,9 +228,20 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
       map.off('rotate', enforceFlatView)
       map.off('pitch', enforceFlatView)
       // Clean up event path layer and source
-      if (map.getLayer('event-path')) {
-        map.removeLayer('event-path')
-      }
+      ;[
+        'event-path-solid',
+        'event-path-dashed',
+        'event-path-dotted',
+        'event-path-golden-age',
+        'event-path-memory-trail',
+        'event-path-important-jump',
+        // legacy (older versions of the app)
+        'event-path',
+      ].forEach((id) => {
+        if (map.getLayer(id)) {
+          map.removeLayer(id)
+        }
+      })
       if (map.getSource('event-path')) {
         map.removeSource('event-path')
       }
@@ -245,69 +319,190 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
     const map = mapRef.current
     if (!map) return
 
-    // Build array of coordinates for events with valid locations
-    const coordinates = []
-    const currentEventIndices = new Set()
-    
-    events.forEach((event, index) => {
-      const coords = event?.location?.coordinates
-      if (coords && coords.lng != null && coords.lat != null) {
-        coordinates.push([coords.lng, coords.lat])
-        currentEventIndices.add(index)
+    const buildPathGeoJsonFromEvents = (allEvents) => {
+      const nodes = []
+      allEvents.forEach((event) => {
+        const coords = event?.location?.coordinates
+        if (coords && coords.lng != null && coords.lat != null) {
+          const styleKeyRaw = event?.transition?.lineStyleKey
+          nodes.push({
+            coord: [coords.lng, coords.lat],
+            styleKey: typeof styleKeyRaw === 'string' ? styleKeyRaw : '',
+          })
+        }
+      })
+
+      const features = []
+      const seenSegments = new Set()
+
+      const fmt = (n) => {
+        const num = typeof n === 'number' ? n : Number(n)
+        if (!Number.isFinite(num)) return ''
+        // Round to reduce accidental duplicates from tiny float differences.
+        return num.toFixed(6)
       }
-    })
 
-    // Keep latest coordinates in a ref so style-load callbacks can use them.
-    latestEventPathCoordsRef.current = coordinates
+      const coordKey = (coord) => `${fmt(coord?.[0])},${fmt(coord?.[1])}`
 
-    const buildPathGeoJson = (coords) => ({
-      type: 'FeatureCollection',
-      features:
-        coords.length >= 2
-          ? [
-              {
-                type: 'Feature',
-                properties: {},
-                geometry: {
-                  type: 'LineString',
-                  coordinates: coords,
-                },
-              },
-            ]
-          : [],
-    })
+      // Treat A->B and B->A as the same "between 2 places" segment.
+      const segmentKey = (a, b) => {
+        const ka = coordKey(a)
+        const kb = coordKey(b)
+        return ka < kb ? `${ka}|${kb}` : `${kb}|${ka}`
+      }
 
-    const ensureEventPathLayer = () => {
-      if (!map.getSource('event-path')) {
-        map.addSource('event-path', {
-          type: 'geojson',
-          data: buildPathGeoJson(latestEventPathCoordsRef.current),
+      for (let i = 1; i < nodes.length; i += 1) {
+        const prev = nodes[i - 1]
+        const cur = nodes[i]
+
+        // Skip zero-length and duplicate segments.
+        const key = segmentKey(prev.coord, cur.coord)
+        if (!key || coordKey(prev.coord) === coordKey(cur.coord) || seenSegments.has(key)) {
+          continue
+        }
+        seenSegments.add(key)
+
+        features.push({
+          type: 'Feature',
+          properties: {
+            styleKey: cur.styleKey || '',
+          },
+          geometry: {
+            type: 'LineString',
+            coordinates: [prev.coord, cur.coord],
+          },
         })
       }
 
-      if (!map.getLayer('event-path')) {
-        map.addLayer({
-          id: 'event-path',
-          type: 'line',
-          source: 'event-path',
-          layout: {
-            'line-join': 'round',
-            'line-cap': 'round',
-          },
+      return {
+        type: 'FeatureCollection',
+        features,
+      }
+    }
+
+    const geoJson = buildPathGeoJsonFromEvents(events)
+
+    const fmt = (n) => {
+      const num = typeof n === 'number' ? n : Number(n)
+      if (!Number.isFinite(num)) return ''
+      // Round to reduce accidental duplicates from tiny float differences.
+      return num.toFixed(6)
+    }
+
+    const coordKeyFromLngLat = (lng, lat) => `${fmt(lng)},${fmt(lat)}`
+
+    const desiredMarkers = new Map() // coordKey -> { lng, lat, isActive }
+
+    events.forEach((event, index) => {
+      const coords = event?.location?.coordinates
+      if (!coords || coords.lng == null || coords.lat == null) return
+
+      const key = coordKeyFromLngLat(coords.lng, coords.lat)
+      if (!key || key.startsWith(',')) return
+
+      const isActive = index === activeEventIndex
+      if (!desiredMarkers.has(key)) {
+        desiredMarkers.set(key, { lng: coords.lng, lat: coords.lat, isActive })
+      } else if (isActive) {
+        // If any event at this place is active, show the marker as active.
+        desiredMarkers.get(key).isActive = true
+      }
+    })
+
+    // Keep latest data in a ref so style-load callbacks can use it.
+    latestEventPathGeoJsonRef.current = geoJson
+
+    const ensureEventPathLayers = () => {
+      if (!map.getSource('event-path')) {
+        map.addSource('event-path', {
+          type: 'geojson',
+          data: latestEventPathGeoJsonRef.current,
+        })
+      }
+
+      const layers = [
+        {
+          id: 'event-path-solid',
+          filter: ['!in', 'styleKey', 'Dashed', 'Dotted', 'GoldenAgePath', 'MemoryTrail', 'ImportantJump'],
           paint: {
             'line-color': '#3b82f6',
             'line-width': 6,
             'line-opacity': 0.8,
           },
+        },
+        {
+          id: 'event-path-dashed',
+          filter: ['==', 'styleKey', 'Dashed'],
+          paint: {
+            'line-color': '#3b82f6',
+            'line-width': 6,
+            'line-opacity': 0.8,
+            'line-dasharray': [2, 2],
+          },
+        },
+        {
+          id: 'event-path-dotted',
+          filter: ['==', 'styleKey', 'Dotted'],
+          paint: {
+            'line-color': '#3b82f6',
+            'line-width': 6,
+            'line-opacity': 0.8,
+            'line-dasharray': [0.6, 1.6],
+          },
+        },
+        {
+          id: 'event-path-golden-age',
+          filter: ['==', 'styleKey', 'GoldenAgePath'],
+          paint: {
+            'line-color': '#f59e0b',
+            'line-width': 6,
+            'line-opacity': 0.85,
+            'line-dasharray': [2.5, 1.5],
+          },
+        },
+        {
+          id: 'event-path-memory-trail',
+          filter: ['==', 'styleKey', 'MemoryTrail'],
+          paint: {
+            'line-color': '#a855f7',
+            'line-width': 6,
+            'line-opacity': 0.85,
+            'line-dasharray': [0.6, 1.6],
+          },
+        },
+        {
+          id: 'event-path-important-jump',
+          filter: ['==', 'styleKey', 'ImportantJump'],
+          paint: {
+            'line-color': '#ef4444',
+            'line-width': 6,
+            'line-opacity': 0.9,
+            'line-dasharray': [4, 2],
+          },
+        },
+      ]
+
+      layers.forEach((layer) => {
+        if (map.getLayer(layer.id)) return
+        map.addLayer({
+          id: layer.id,
+          type: 'line',
+          source: 'event-path',
+          filter: layer.filter,
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round',
+          },
+          paint: layer.paint,
         })
-      }
+      })
     }
 
     const updateEventPath = () => {
-      ensureEventPathLayer()
+      ensureEventPathLayers()
       const source = map.getSource('event-path')
       if (source && typeof source.setData === 'function') {
-        source.setData(buildPathGeoJson(latestEventPathCoordsRef.current))
+        source.setData(latestEventPathGeoJsonRef.current)
         return true
       }
       return false
@@ -335,42 +530,32 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
       })
     }
 
-    // Remove markers for events that no longer exist or don't have locations
-    eventMarkersRef.current.forEach((markerData, index) => {
-      if (!currentEventIndices.has(index)) {
+    // Remove markers for places that are no longer present
+    eventMarkersRef.current.forEach((markerData, coordKey) => {
+      if (!desiredMarkers.has(coordKey)) {
         markerData.marker.remove()
-        eventMarkersRef.current.delete(index)
+        eventMarkersRef.current.delete(coordKey)
       }
     })
 
-    // Add or update markers for events with locations
-    events.forEach((event, index) => {
-      const coords = event?.location?.coordinates
-      if (!coords || coords.lng == null || coords.lat == null) {
-        return
-      }
+    // Add or update a single marker per unique place (coordinate key)
+    desiredMarkers.forEach((info, coordKey) => {
+      const markerColor = info.isActive ? '#1d4ed8' : '#6b7280' // Blue for active, grey otherwise
 
-      const isActive = index === activeEventIndex
-      const markerColor = isActive ? '#1d4ed8' : '#6b7280' // Blue for active, grey for others
+      if (eventMarkersRef.current.has(coordKey)) {
+        const markerData = eventMarkersRef.current.get(coordKey)
+        markerData.marker.setLngLat([info.lng, info.lat])
 
-      if (eventMarkersRef.current.has(index)) {
-        // Update existing marker
-        const markerData = eventMarkersRef.current.get(index)
-        markerData.marker.setLngLat([coords.lng, coords.lat])
-        // Update color if needed (remove and recreate with new color)
         if (markerData.color !== markerColor) {
           markerData.marker.remove()
-          const newMarker = new mapboxgl.Marker({ color: markerColor })
-            .setLngLat([coords.lng, coords.lat])
+          const newMarker = new mapboxgl.Marker({ color: markerColor }).setLngLat([info.lng, info.lat])
           newMarker.addTo(map)
-          eventMarkersRef.current.set(index, { marker: newMarker, color: markerColor })
+          eventMarkersRef.current.set(coordKey, { marker: newMarker, color: markerColor })
         }
       } else {
-        // Create new marker
-        const marker = new mapboxgl.Marker({ color: markerColor })
-          .setLngLat([coords.lng, coords.lat])
+        const marker = new mapboxgl.Marker({ color: markerColor }).setLngLat([info.lng, info.lat])
         marker.addTo(map)
-        eventMarkersRef.current.set(index, { marker, color: markerColor })
+        eventMarkersRef.current.set(coordKey, { marker, color: markerColor })
       }
     })
   }, [events, activeEventIndex])
