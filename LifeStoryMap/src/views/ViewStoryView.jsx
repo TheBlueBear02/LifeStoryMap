@@ -1,31 +1,34 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import EventTimeline from '../components/EventTimeline'
 import '../styles/view-story-view.css'
 
-function parseLocalDate(dateStr) {
-  if (!dateStr || typeof dateStr !== 'string') return null
+function normalizeFormDate(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string') return ''
+
   const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/)
-  if (!match) return null
-  const year = Number(match[1])
-  const month = Number(match[2])
-  const day = Number(match[3])
-  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null
-  return new Date(year, month - 1, day)
+  if (match) {
+    const year = match[1]
+    const month = match[2]
+    const day = match[3]
+    return `${day}.${month}.${year}`
+  }
+
+  // Fallback: try to parse other date-like strings and normalize to DD.MM.YYYY.
+  const parsed = new Date(dateStr)
+  if (!Number.isFinite(parsed.getTime())) return ''
+  const iso = parsed.toISOString().slice(0, 10) // YYYY-MM-DD
+  const isoMatch = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!isoMatch) return ''
+  return `${isoMatch[3]}.${isoMatch[2]}.${isoMatch[1]}`
 }
 
-const heDateFormatter = new Intl.DateTimeFormat('he-IL', {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-})
-
 function formatDateRange(dateStart, dateEnd) {
-  const start = parseLocalDate(dateStart)
-  const end = parseLocalDate(dateEnd)
-  if (!start) return ''
-  const startText = heDateFormatter.format(start)
-  if (!end || dateEnd === dateStart) return startText
-  return `${startText} – ${heDateFormatter.format(end)}`
+  const startText = normalizeFormDate(dateStart)
+  const endText = normalizeFormDate(dateEnd)
+  if (!startText) return ''
+  if (!endText || endText === startText) return startText
+  return `${startText} – ${endText}`
 }
 
 function getMainMedia(event) {
@@ -201,6 +204,9 @@ function ViewStoryView({ onEventsChange, onActiveEventIndexChange, onMapCameraCh
       </header>
 
       <div className="view-story-content">
+        {!loading && events.length > 0 ? (
+          <EventTimeline events={events} currentEventIndex={currentEventIndex} />
+        ) : null}
         {loading ? (
           <div className="empty-state">
             <p>Loading story...</p>
