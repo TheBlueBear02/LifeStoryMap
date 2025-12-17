@@ -6,7 +6,7 @@
   gap: 1rem;
   direction: rtl;
   width: 100%;
-  min-height: 100vh;
+  min-height: 90vh;
   box-sizing: border-box;
   position: relative;
   margin-bottom: calc(-1 * 4rem);
@@ -49,6 +49,7 @@
 .view-story-card {
   width: 100%;
   max-width: 360px;
+  max-height: 80vh;
   margin: 0;
   margin-inline: auto;
   padding: 0.95rem 1rem 1.25rem;
@@ -58,6 +59,36 @@
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
   backdrop-filter: blur(8px);
   box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  direction: ltr; /* Force scrollbar to right side */
+  scrollbar-width: thin; /* Firefox: narrow scrollbar */
+  scrollbar-color: rgba(156, 163, 175, 0.6) transparent; /* Firefox: thumb and track colors */
+}
+
+/* Webkit browsers (Chrome, Safari, Edge) - narrow scrollbar on right */
+.view-story-card::-webkit-scrollbar {
+  width: 6px; /* Narrow scrollbar */
+}
+
+.view-story-card::-webkit-scrollbar-button {
+  display: none; /* Hide scrollbar arrows/buttons */
+  height: 0;
+  width: 0;
+}
+
+.view-story-card::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.view-story-card::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.6);
+  border-radius: 3px;
+}
+
+.view-story-card::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.8);
 }
 
 .view-story-title {
@@ -140,11 +171,31 @@
   margin-right: calc(-1 * var(--app-root-pad-right, 17px));
   margin-bottom: calc(-1 * 4rem);
   z-index: 10;
-  background: rgba(255, 255, 255, 0.92);
+  background: transparent;
   backdrop-filter: blur(8px);
   box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
   pointer-events: none;
   align-self: stretch;
+}
+
+/* Mobile: Fix bottom nav to viewport bottom */
+@media (max-width: 768px) {
+  .view-story-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0.75rem 0 calc(0.75rem + env(safe-area-inset-bottom, 0px)) 0;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.12);
+  }
+
+  .view-story-content {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 .view-story-bottom-nav-inner {

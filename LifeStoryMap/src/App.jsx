@@ -105,7 +105,7 @@ function App() {
           activeEventIndex={isStoryMode ? expandedEventIndex : null}
         />
       </div>
-      <div className="app-root">
+      <div className={`app-root ${isViewMode ? 'view-story-mode' : ''}`}>
         <Routes>
           <Route path="/" element={<HomeView />} />
           <Route

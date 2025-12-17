@@ -150,5 +150,43 @@
         "urlNew": ""
       }
     }
+  },
+  {
+    "eventId": "E006",
+    "eventType": "Event",
+    "title": "",
+    "timeline": {
+      "dateStart": "",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "",
+      "coordinates": {
+        "lat": null,
+        "lng": null
+      },
+      "mapView": {
+        "zoom": 10,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "transition": {
+      "type": "ArcFlyWithPoint",
+      "durationSeconds": 3,
+      "sourceEventId": "E005",
+      "lineStyleKey": ""
+    },
+    "content": {
+      "textHtml": "",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    }
   }
 ]
