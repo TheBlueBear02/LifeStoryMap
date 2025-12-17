@@ -238,7 +238,6 @@
     rgba(120, 80, 35, 0.9) 100%
   );
 }
-
 /* Phone view: Hide map and show only sidebar */
 @media (max-width: 768px) {
   .map-root {
@@ -251,3 +250,4 @@
     margin-right: 0;
   }
 }
+

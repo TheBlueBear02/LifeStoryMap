@@ -183,6 +183,14 @@
   text-align: center;
   justify-content: center;
   min-width: 0;
+  transition: filter 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.story-view-btn:hover {
+  color: white;
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.4);
 }
 
 .story-edit-btn {

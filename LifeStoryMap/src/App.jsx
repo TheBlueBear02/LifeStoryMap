@@ -3,15 +3,18 @@ import { Routes, Route, useLocation } from 'react-router-dom'
 import './App.css'
 import HomeView from './views/HomeView.jsx'
 import EditStoryView from './views/EditStoryView.jsx'
+import ViewStoryView from './views/ViewStoryView.jsx'
 import MapView from './components/MapView.jsx'
 
 function App() {
   const location = useLocation()
   const isEditMode = location.pathname.startsWith('/edit-story/') || location.pathname.startsWith('/create-story')
+  const isViewMode = location.pathname.startsWith('/view-story/')
+  const isStoryMode = isEditMode || isViewMode
   
   // Extract storyId from pathname
-  const storyIdMatch = location.pathname.match(/\/edit-story\/([^/]+)/)
-  const currentStoryId = storyIdMatch ? storyIdMatch[1] : (location.pathname === '/create-story' ? 'new' : null)
+  const storyIdMatch = location.pathname.match(/\/(edit-story|view-story)\/([^/]+)/)
+  const currentStoryId = storyIdMatch ? storyIdMatch[2] : (location.pathname === '/create-story' ? 'new' : null)
   
   const [mapCamera, setMapCamera] = useState({
     center: [34.7818, 32.0853], // Default center (Tel Aviv as a neutral starting point)
@@ -28,7 +31,7 @@ function App() {
 
   // Reset marker location and picking state when switching stories or navigating away from edit mode
   useEffect(() => {
-    if (!isEditMode) {
+    if (!isStoryMode) {
       setIsPickingLocation(false)
       setMarkerLocation(null)
       setLastMapClick(null)
@@ -42,7 +45,7 @@ function App() {
       setEvents([])
       setExpandedEventIndex(null)
     }
-  }, [currentStoryId, isEditMode])
+  }, [currentStoryId, isStoryMode])
 
   const handleMapClick = ({ lng, lat, camera }) => {
     // Only handle map clicks when picking location in edit mode
@@ -98,13 +101,23 @@ function App() {
           markerLocation={isEditMode ? markerLocation : null}
           onMapClick={isEditMode ? handleMapClick : null}
           onCameraChange={handleCameraChange}
-          events={isEditMode ? events : []}
-          activeEventIndex={isEditMode ? expandedEventIndex : null}
+          events={isStoryMode ? events : []}
+          activeEventIndex={isStoryMode ? expandedEventIndex : null}
         />
       </div>
       <div className="app-root">
         <Routes>
           <Route path="/" element={<HomeView />} />
+          <Route
+            path="/view-story/:storyId"
+            element={(
+              <ViewStoryView
+                onEventsChange={setEvents}
+                onActiveEventIndexChange={setExpandedEventIndex}
+                onMapCameraChange={setMapCamera}
+              />
+            )}
+          />
           <Route
             path="/edit-story/:storyId"
             element={(

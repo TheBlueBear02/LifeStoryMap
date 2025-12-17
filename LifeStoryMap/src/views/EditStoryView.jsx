@@ -804,6 +804,9 @@ function EditStoryView({
         <button type="button" className="primary-btn" onClick={insertEventAtEnd}>
           + New event
         </button>
+        <div className="event-counter" aria-label={`Events count: ${events.length}`}>
+          {events.length} {events.length === 1 ? 'event' : 'events'}
+        </div>
         <button
           type="button"
           className="secondary-btn"
@@ -815,8 +818,8 @@ function EditStoryView({
             : saveStatus === 'error'
               ? 'Error – retry'
               : isDirty
-                ? 'Save Events'
-                : 'Events Saved'}
+                ? 'Save Changes'
+                : 'Changes Saved'}
         </button>
       </div>
 

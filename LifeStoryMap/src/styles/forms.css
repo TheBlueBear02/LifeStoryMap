@@ -10,6 +10,17 @@ select {
   outline: none;
   width: 100%;
   box-sizing: border-box;
+  background-color: #ffffff;
+  color: #111827;
+  /* Helps prevent mobile browsers from "auto" theming text color */
+  -webkit-text-fill-color: #111827;
+}
+
+input[type='text']::placeholder,
+input[type='date']::placeholder,
+input[type='number']::placeholder,
+textarea::placeholder {
+  color: #9ca3af;
 }
 
 input[type='text']:focus,
