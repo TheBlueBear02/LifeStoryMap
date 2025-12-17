@@ -4,6 +4,8 @@ function EventBlock({
   event,
   index,
   isExpanded,
+  isPickingLocation,
+  activeEventIndex,
   onToggleExpand,
   onChangeField,
   onUploadMainImage,
@@ -38,6 +40,7 @@ function EventBlock({
   }
 
   const isPeriod = event.eventType === 'Period'
+  const isPickingThisEvent = Boolean(isPickingLocation && activeEventIndex === index)
 
   return (
     <div className="event-block">
@@ -45,16 +48,15 @@ function EventBlock({
         <div className="event-block-meta-row">
           <div className="event-block-id-type">
             <span className="event-drag-handle" title="Drag to reorder">⋮⋮</span>
-            <span className="event-id">#{event.eventId}</span>
-            <select
-              className="event-type-select"
-              value={event.eventType || 'Event'}
-              onChange={(e) => handleInputChange(['eventType'], e.target.value)}
-            >
-              <option value="Event">Event</option>
-              <option value="Period">Period</option>
-            </select>
           </div>
+
+          <input
+            className="event-title-input"
+            type="text"
+            placeholder="Event title"
+            value={event.title || ''}
+            onChange={(e) => handleInputChange(['title'], e.target.value)}
+          />
 
           <div className="event-header-actions">
             <button type="button" className="event-expand-btn" onClick={() => onToggleExpand(index)}>
@@ -98,14 +100,6 @@ function EventBlock({
           </div>
         </div>
 
-        <input
-          className="event-title-input"
-          type="text"
-          placeholder="Event title"
-          value={event.title || ''}
-          onChange={(e) => handleInputChange(['title'], e.target.value)}
-        />
-
         <div className="event-summary-row">
           <div className="event-dates">
             {isPeriod ? (
@@ -146,13 +140,14 @@ function EventBlock({
             />
             <button
               type="button"
-              className="choose-location-btn"
+              className={`choose-location-btn${isPickingThisEvent ? ' is-picking' : ''}`}
               onClick={() => {
                 if (onBeginPickLocation) {
                   onBeginPickLocation(index)
                 }
               }}
               title="Choose location on map"
+              aria-pressed={isPickingThisEvent}
             >
               📍
             </button>
@@ -177,7 +172,7 @@ function EventBlock({
                 </select>
               </label>
               <label className="transition-duration-field">
-                Duration (seconds)
+                Duration (secs)
                 <input
                   type="number"
                   min="0"

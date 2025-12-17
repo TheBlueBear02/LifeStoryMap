@@ -42,21 +42,51 @@
 
 .choose-location-btn {
   flex-shrink: 0;
-  padding: 0.4rem 0.8rem;
-  font-size: 0.85rem;
-  background: #2563eb;
-  color: white;
-  border: none;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  border: 1px solid rgba(193, 163, 106, 0.45);
+  background: rgba(255, 255, 255, 0.75);
+  color: #2563eb;
   border-radius: 0.5rem;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
   white-space: nowrap;
 }
 
 .choose-location-btn:hover {
-  background: #1d4ed8;
+  background: rgba(37, 99, 235, 0.12);
+  border-color: rgba(37, 99, 235, 0.45);
+  color: #1d4ed8;
 }
 
 .choose-location-btn:active {
-  background: #1e40af;
+  background: rgba(37, 99, 235, 0.18);
+  border-color: rgba(37, 99, 235, 0.65);
+  color: #1d4ed8;
+}
+
+.choose-location-btn:focus {
+  outline: none;
+}
+
+.choose-location-btn:focus:not(:focus-visible) {
+  box-shadow: none;
+}
+
+.choose-location-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.22);
+}
+
+/* Keep the button highlighted while "pick location" mode is active for this event */
+.choose-location-btn.is-picking {
+  background: rgba(37, 99, 235, 0.18);
+  border-color: rgba(37, 99, 235, 0.75);
+  color: #1d4ed8;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
 }

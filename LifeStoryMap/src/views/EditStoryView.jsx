@@ -29,6 +29,7 @@ function EditStoryView({
   const [pickingStartTime, setPickingStartTime] = useState(null)
   const [isActionsBarStuck, setIsActionsBarStuck] = useState(false)
   const cameraBeforeEventFocusRef = useRef(null)
+  const markerBeforePickingRef = useRef(null)
   const actionsBarRef = useRef(null)
   const actionsBarSentinelRef = useRef(null)
 
@@ -498,6 +499,26 @@ function EditStoryView({
   }
 
   const beginPickLocationForEvent = (index) => {
+    // Toggle off if the user clicks the same button again.
+    if (isPickingLocation && activeEventIndex === index) {
+      setIsPickingLocation(false)
+      setActiveEventIndex(null)
+      setPickingStartTime(null)
+      if (onPickingLocationChange) {
+        onPickingLocationChange(false)
+      }
+      // Prevent any stale queued click from being processed.
+      if (onLastMapClickChange) {
+        onLastMapClickChange(null)
+      }
+      // Restore marker position (we clear it when picking starts).
+      if (onMarkerLocationChange) {
+        onMarkerLocationChange(markerBeforePickingRef.current ?? null)
+      }
+      markerBeforePickingRef.current = null
+      return
+    }
+
     setActiveEventIndex(index)
     const startTime = Date.now()
     setPickingStartTime(startTime)
@@ -505,6 +526,8 @@ function EditStoryView({
     if (onPickingLocationChange) {
       onPickingLocationChange(true)
     }
+    // Remember current marker so we can restore it if the user cancels picking.
+    markerBeforePickingRef.current = markerLocation ?? null
     // Clear any previous map click to ensure we only process new clicks
     if (onLastMapClickChange) {
       onLastMapClickChange(null)
@@ -825,6 +848,8 @@ function EditStoryView({
                 event={event}
                 index={index}
                 isExpanded={expandedIndexes.has(index)}
+                isPickingLocation={isPickingLocation}
+                activeEventIndex={activeEventIndex}
                 onToggleExpand={toggleExpand}
                 onChangeField={updateEventField}
                 onUploadMainImage={handleUploadMainImage}

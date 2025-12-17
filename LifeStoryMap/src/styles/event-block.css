@@ -89,7 +89,7 @@
   border-radius: 1rem;
   padding: 1rem 1.25rem 0.75rem;
   border: 1px solid #e5e7eb;
-  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.20);
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -103,7 +103,7 @@
 
 .event-block-meta-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
 }
@@ -162,12 +162,14 @@
 }
 
 .event-title-input {
+  flex: 1 1 auto;
+  min-width: 0;
   width: 100%;
   font-size: 1.35rem;
   font-weight: 600;
   border: none;
   outline: none;
-  margin-bottom: 0.25rem;
+  margin: 0;
   text-align: center;
 }
 
