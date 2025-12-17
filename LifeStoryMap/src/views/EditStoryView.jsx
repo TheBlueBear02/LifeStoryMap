@@ -27,7 +27,49 @@ function EditStoryView({
   const [activeEventIndex, setActiveEventIndex] = useState(null)
   const [isPickingLocation, setIsPickingLocation] = useState(false)
   const [pickingStartTime, setPickingStartTime] = useState(null)
+  const [isActionsBarStuck, setIsActionsBarStuck] = useState(false)
   const cameraBeforeEventFocusRef = useRef(null)
+  const actionsBarRef = useRef(null)
+  const actionsBarSentinelRef = useRef(null)
+
+  useEffect(() => {
+    const bar = actionsBarRef.current
+    const sentinel = actionsBarSentinelRef.current
+    if (!bar || !sentinel) return
+    if (typeof IntersectionObserver === 'undefined') return
+
+    const findScrollParent = (node) => {
+      let el = node?.parentElement || null
+      while (el) {
+        const style = window.getComputedStyle(el)
+        const overflowY = style.overflowY
+        if (overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay') {
+          return el
+        }
+        el = el.parentElement
+      }
+      return null
+    }
+
+    const root = findScrollParent(bar)
+    const stickyTopPx = Number.parseFloat(window.getComputedStyle(bar).top || '0') || 0
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // When the sentinel scrolls past the sticky threshold, the bar is "stuck".
+        setIsActionsBarStuck(!entry.isIntersecting)
+      },
+      {
+        root,
+        threshold: [0],
+        // Align the intersection boundary with the element's sticky `top` value (even if it's negative).
+        rootMargin: `${-stickyTopPx}px 0px 0px 0px`,
+      },
+    )
+
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [])
 
   const uploadImageFile = async (file) => {
     const reader = new FileReader()
@@ -208,8 +250,12 @@ function EditStoryView({
           cameraBeforeEventFocusRef.current = null
         }
       } else {
-        // First expand: remember current camera so Close can restore it.
-        if (next.size === 0) {
+        // Accordion behavior: only one expanded event at a time.
+        const hadAnyExpanded = next.size > 0
+        next.clear()
+
+        // First expand (from none): remember current camera so Close can restore it.
+        if (!hadAnyExpanded) {
           cameraBeforeEventFocusRef.current = mapCamera
             ? {
                 center: Array.isArray(mapCamera.center) ? [...mapCamera.center] : [0, 0],
@@ -718,30 +764,38 @@ function EditStoryView({
         <div>
           <h1>{story ? story.name : 'Create New Story'}</h1>
           <p className="app-subtitle">
-            Edit existing events and insert new ones between them. Transitions will automatically
-            update their <code>sourceEventId</code>.
+            Create a story by adding events. Create new events by Inserting title, date, text and image and don't forget to add location!
           </p>
         </div>
-        <div className="header-actions">
-          <button type="button" className="primary-btn" onClick={insertEventAtEnd}>
-            + New event
-          </button>
-          <button
-            type="button"
-            className="secondary-btn"
-            onClick={saveToFile}
-            disabled={saveStatus === 'saving' || (!isDirty && saveStatus !== 'error')}
-          >
-            {saveStatus === 'saving'
-              ? 'Saving...'
-              : saveStatus === 'error'
-                ? 'Error – retry'
-                : isDirty
-                  ? 'Save Events'
-                  : 'Events Saved'}
-          </button>
-        </div>
       </header>
+
+      <div
+        ref={actionsBarSentinelRef}
+        className="edit-story-actions-sentinel"
+        aria-hidden="true"
+      />
+      <div
+        ref={actionsBarRef}
+        className={`header-actions edit-story-actions-bar${isActionsBarStuck ? ' is-stuck' : ''}`}
+      >
+        <button type="button" className="primary-btn" onClick={insertEventAtEnd}>
+          + New event
+        </button>
+        <button
+          type="button"
+          className="secondary-btn"
+          onClick={saveToFile}
+          disabled={saveStatus === 'saving' || (!isDirty && saveStatus !== 'error')}
+        >
+          {saveStatus === 'saving'
+            ? 'Saving...'
+            : saveStatus === 'error'
+              ? 'Error – retry'
+              : isDirty
+                ? 'Save Events'
+                : 'Events Saved'}
+        </button>
+      </div>
 
       <main className={`events-list${draggingIndex != null ? ' is-dragging' : ''}`}>
         {loading && (

@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from 'react'
+
 function EventBlock({
   event,
   index,
@@ -12,6 +14,25 @@ function EventBlock({
   onBeginPickLocation,
   onSearchLocation,
 }) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const menuRef = useRef(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setIsMenuOpen(false)
+      }
+    }
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isMenuOpen])
+
   const handleInputChange = (path, value) => {
     onChangeField(index, path, value)
   }
@@ -36,16 +57,44 @@ function EventBlock({
           </div>
 
           <div className="event-header-actions">
-            <button
-              type="button"
-              className="event-delete-btn"
-              onClick={() => onDelete(index)}
-            >
-              Remove
-            </button>
             <button type="button" className="event-expand-btn" onClick={() => onToggleExpand(index)}>
               {isExpanded ? 'Close' : 'Edit'}
             </button>
+            <div className="story-menu-container" ref={menuRef}>
+              <button
+                type="button"
+                className="story-menu-icon"
+                onClick={() => setIsMenuOpen((v) => !v)}
+                aria-label="Event menu"
+                aria-expanded={isMenuOpen}
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <circle cx="10" cy="4" r="1.5" fill="currentColor" />
+                  <circle cx="10" cy="10" r="1.5" fill="currentColor" />
+                  <circle cx="10" cy="16" r="1.5" fill="currentColor" />
+                </svg>
+              </button>
+              {isMenuOpen && (
+                <div className="story-menu-dropdown">
+                  <button
+                    type="button"
+                    className="story-menu-item"
+                    onClick={() => {
+                      setIsMenuOpen(false)
+                      onDelete(index)
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -216,7 +265,7 @@ function EventBlock({
                     )}
                   </label>
                   <label className="image-comparison-new-version file-input-label">
-                    Add new version
+                    New version (optional)
                     {event.content.imageComparison.urlNew ? (
                       <div className="image-preview-container">
                         <img
@@ -261,7 +310,7 @@ function EventBlock({
                   </label>
                 </div>
                 <label>
-                  Caption
+                  Image Caption
                   <input
                     className="rtl-input"
                     type="text"

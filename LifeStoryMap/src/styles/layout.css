@@ -81,13 +81,17 @@
   width: 420px;
   margin: 0;
   margin-right: 20px;
-  padding: 1.5rem 1.5rem 4rem;
+  /* Keep these in vars so sticky full-bleed bars can "cancel" padding cleanly */
+  --app-root-pad-top: 1.5rem;
+  --app-root-pad-left: 1.5rem;
+  /* This was previously set via `padding-right: 17px` for scrollbar compensation */
+  --app-root-pad-right: 17px;
+  padding: var(--app-root-pad-top) var(--app-root-pad-right) 4rem var(--app-root-pad-left);
   color: #111827;
   min-height: 100vh;
   box-sizing: border-box;
   /* Old map parchment gradient with enhanced texture - warmer tones */
-  background: 
-    /* Crosshatch texture pattern - more visible */
+  --app-root-bg:
     repeating-linear-gradient(
       45deg,
       rgba(193, 163, 106, 0.08) 0px,
@@ -106,7 +110,6 @@
       rgba(181, 151, 90, 0.05) 2px,
       rgba(181, 151, 90, 0.05) 3px
     ),
-    /* Fine paper grain texture - more pronounced */
     repeating-linear-gradient(
       0deg,
       rgba(181, 151, 90, 0.05) 0px,
@@ -127,7 +130,6 @@
       transparent 1.5px,
       transparent 2px
     ),
-    /* Aged paper spots and discoloration - warmer tones */
     radial-gradient(
       ellipse 1000px 800px at 20% 30%,
       rgba(245, 230, 200, 0.4) 0%,
@@ -143,7 +145,6 @@
       rgba(235, 220, 195, 0.25) 0%,
       transparent 45%
     ),
-    /* Aging spots - subtle brown/yellow discoloration */
     radial-gradient(
       circle 150px at 10% 15%,
       rgba(200, 170, 130, 0.15) 0%,
@@ -159,7 +160,6 @@
       rgba(190, 160, 120, 0.1) 0%,
       transparent 60%
     ),
-    /* Main gradient - warmer parchment cream to golden amber/brown */
     linear-gradient(
       135deg,
       #F5E8D0 0%,
@@ -171,7 +171,7 @@
       #C8A880 90%,
       #C1A36A 100%
     );
-  background-size: 
+  --app-root-bg-size:
     200px 200px,
     200px 200px,
     4px 4px,
@@ -183,12 +183,13 @@
     100% 100%,
     100% 100%,
     100% 100%;
+  background: var(--app-root-bg);
+  background-size: var(--app-root-bg-size);
   border-left: 1px solid rgba(193, 163, 106, 0.4);
   box-shadow: 4px 0 12px rgba(0, 0, 0, 0.5), 2px 0 6px rgba(0, 0, 0, 0.1);
 
   overflow-y: auto;
   overflow-x: hidden;
-  padding-right: 17px;
   position: relative;
   z-index: 1;
 }
