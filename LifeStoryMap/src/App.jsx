@@ -103,6 +103,7 @@ function App() {
           onCameraChange={handleCameraChange}
           events={isStoryMode ? events : []}
           activeEventIndex={isStoryMode ? expandedEventIndex : null}
+          showStaticPath={isEditMode}
         />
       </div>
       <div className={`app-root ${isViewMode ? 'view-story-mode' : ''}`}>

@@ -21,6 +21,8 @@
 .story-slots-container .between-plus-btn {
   width: 100%;
   margin: 0;
+  height: 50px;
+
 }
 
 .home-content {
@@ -218,6 +220,7 @@
   text-decoration: none;
   display: inline-flex;
   justify-content: center;
+
 }
 
 .create-story-form {

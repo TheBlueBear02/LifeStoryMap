@@ -12,12 +12,15 @@ import 'mapbox-gl/dist/mapbox-gl.css'
  * - onCameraChange: (camera) => void
  * - events: Array of event objects with location.coordinates
  * - activeEventIndex: Index of the currently expanded/active event
+ * - showStaticPath: whether to show the static path between all events
  */
-function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = [], activeEventIndex = null }) {
+function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = [], activeEventIndex = null, showStaticPath = true }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const markerRef = useRef(null)
   const eventMarkersRef = useRef(new Map()) // Map of coordKey -> { marker, color }
+  const prevActiveEventIndexRef = useRef(activeEventIndex)
+  const transitionAnimationRef = useRef(null) // Stores current requestAnimationFrame id
   const latestEventPathGeoJsonRef = useRef({ type: 'FeatureCollection', features: [] }) // latest FeatureCollection for the path
   const isSyncingFromPropsRef = useRef(false) // Track if we're syncing from props to avoid feedback loop
   
@@ -89,7 +92,7 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
           paint: {
             'line-color': '#3b82f6',
             'line-width': 6,
-            'line-opacity': 0.8,
+            'line-opacity': showStaticPath ? 0.8 : 0.0,
           },
         },
         {
@@ -98,7 +101,7 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
           paint: {
             'line-color': '#3b82f6',
             'line-width': 6,
-            'line-opacity': 0.8,
+            'line-opacity': showStaticPath ? 0.8 : 0.0,
             'line-dasharray': [2, 2],
           },
         },
@@ -108,7 +111,7 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
           paint: {
             'line-color': '#3b82f6',
             'line-width': 6,
-            'line-opacity': 0.8,
+            'line-opacity': showStaticPath ? 0.8 : 0.0,
             'line-dasharray': [0.6, 1.6],
           },
         },
@@ -118,7 +121,7 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
           paint: {
             'line-color': '#f59e0b',
             'line-width': 6,
-            'line-opacity': 0.85,
+            'line-opacity': showStaticPath ? 0.85 : 0.0,
             'line-dasharray': [2.5, 1.5],
           },
         },
@@ -128,7 +131,7 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
           paint: {
             'line-color': '#a855f7',
             'line-width': 6,
-            'line-opacity': 0.85,
+            'line-opacity': showStaticPath ? 0.85 : 0.0,
             'line-dasharray': [0.6, 1.6],
           },
         },
@@ -138,7 +141,7 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
           paint: {
             'line-color': '#ef4444',
             'line-width': 6,
-            'line-opacity': 0.9,
+            'line-opacity': showStaticPath ? 0.9 : 0.0,
             'line-dasharray': [4, 2],
           },
         },
@@ -237,6 +240,7 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
         'event-path-important-jump',
         // legacy (older versions of the app)
         'event-path',
+        'event-transition-line',
       ].forEach((id) => {
         if (map.getLayer(id)) {
           map.removeLayer(id)
@@ -244,6 +248,9 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
       })
       if (map.getSource('event-path')) {
         map.removeSource('event-path')
+      }
+      if (map.getSource('event-transition')) {
+        map.removeSource('event-transition')
       }
       // Clean up all event markers
       eventMarkersRef.current.forEach((markerData) => {
@@ -427,7 +434,7 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
           paint: {
             'line-color': '#3b82f6',
             'line-width': 6,
-            'line-opacity': 0.8,
+            'line-opacity': showStaticPath ? 0.8 : 0.0,
           },
         },
         {
@@ -436,7 +443,7 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
           paint: {
             'line-color': '#3b82f6',
             'line-width': 6,
-            'line-opacity': 0.8,
+            'line-opacity': showStaticPath ? 0.8 : 0.0,
             'line-dasharray': [2, 2],
           },
         },
@@ -446,7 +453,7 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
           paint: {
             'line-color': '#3b82f6',
             'line-width': 6,
-            'line-opacity': 0.8,
+            'line-opacity': showStaticPath ? 0.8 : 0.0,
             'line-dasharray': [0.6, 1.6],
           },
         },
@@ -456,7 +463,7 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
           paint: {
             'line-color': '#f59e0b',
             'line-width': 6,
-            'line-opacity': 0.85,
+            'line-opacity': showStaticPath ? 0.85 : 0.0,
             'line-dasharray': [2.5, 1.5],
           },
         },
@@ -466,7 +473,7 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
           paint: {
             'line-color': '#a855f7',
             'line-width': 6,
-            'line-opacity': 0.85,
+            'line-opacity': showStaticPath ? 0.85 : 0.0,
             'line-dasharray': [0.6, 1.6],
           },
         },
@@ -476,7 +483,7 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
           paint: {
             'line-color': '#ef4444',
             'line-width': 6,
-            'line-opacity': 0.9,
+            'line-opacity': showStaticPath ? 0.9 : 0.0,
             'line-dasharray': [4, 2],
           },
         },
@@ -559,6 +566,293 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
       }
     })
   }, [events, activeEventIndex])
+
+  // Animate a line between the previous and current active event when the active index changes.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+
+    const currentIndex = typeof activeEventIndex === 'number' ? activeEventIndex : null
+    const prevIndex = typeof prevActiveEventIndexRef.current === 'number' ? prevActiveEventIndexRef.current : null
+
+    // Nothing to animate on first selection or if index didn't really change.
+    if (currentIndex == null || prevIndex == null || currentIndex === prevIndex) {
+      prevActiveEventIndexRef.current = currentIndex
+      return
+    }
+
+    const allEvents = Array.isArray(events) ? events : []
+    const fromEvent = allEvents[prevIndex]
+    const toEvent = allEvents[currentIndex]
+
+    const fromCoords = fromEvent?.location?.coordinates
+    const toCoords = toEvent?.location?.coordinates
+
+    if (
+      !fromCoords ||
+      !toCoords ||
+      fromCoords.lng == null ||
+      fromCoords.lat == null ||
+      toCoords.lng == null ||
+      toCoords.lat == null
+    ) {
+      prevActiveEventIndexRef.current = currentIndex
+      return
+    }
+
+    // Cancel any running animation before starting a new one.
+    if (transitionAnimationRef.current != null) {
+      cancelAnimationFrame(transitionAnimationRef.current)
+      transitionAnimationRef.current = null
+    }
+
+    const from = [fromCoords.lng, fromCoords.lat]
+    const to = [toCoords.lng, toCoords.lat]
+
+    // Compute duration based on geographical distance between the two points (in km).
+    const toRad = (deg) => (deg * Math.PI) / 180
+    const R = 6371 // Earth radius in km
+    const dLat = toRad(to[1] - from[1])
+    const dLng = toRad(to[0] - from[0])
+    const lat1 = toRad(from[1])
+    const lat2 = toRad(to[1])
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    const distanceKm = R * c
+
+    // Map distance to duration: short hops are quick (but at least 4s), long jumps are slower.
+    // Clamp final duration strictly to the 4–13s range.
+    const secondsFromDistance = 4 + Math.min(9, (distanceKm / 3000) * 9) // base 4s, up to 13s for very long jumps
+    const durationMs = Math.max(4000, Math.min(13000, secondsFromDistance * 1000))
+
+    // Camera zoom interpolation: start closer, zoom out (higher "altitude") in the middle,
+    // then zoom back in to the target at the end of the path.
+    const currentZoom = map.getZoom()
+    const fromZoomRaw = fromEvent?.location?.mapView?.zoom
+    const toZoomRaw = toEvent?.location?.mapView?.zoom
+    const startZoom = typeof fromZoomRaw === 'number' ? fromZoomRaw : currentZoom
+    const targetZoom = typeof toZoomRaw === 'number' ? toZoomRaw : startZoom
+
+    // Choose a "max height" zoom for the arc in the middle of the segment,
+    // based on distance:
+    // - very close points -> tiny zoom-out
+    // - medium distance   -> moderate zoom-out
+    // - very far points   -> strong zoom-out
+    const baseMin = Math.min(startZoom, targetZoom)
+    let extraZoomOut
+    if (!Number.isFinite(distanceKm) || distanceKm <= 0) {
+      extraZoomOut = 0.3
+    } else if (distanceKm <= 50) {
+      // 0–50km: from ~0.3 to ~1 zoom level farther out
+      const f = distanceKm / 50 // 0..1
+      extraZoomOut = 0.3 + f * 0.7
+    } else {
+      // >50km: start at 1 level out, then ramp up to +10 for very long jumps (~4000km+)
+      const distanceFactor = Math.min(1, (distanceKm - 50) / 3950) // 0..1
+      extraZoomOut = 1 + distanceFactor * 9
+    }
+    const midZoom = Math.max(0.5, baseMin - extraZoomOut)
+
+    // During this manual animation, suppress automatic camera sync callbacks,
+    // and notify the outer app once at the end instead.
+    isSyncingFromPropsRef.current = true
+
+    // Ensure a dedicated source + layer for the animated transition line.
+    const ensureTransitionLayer = () => {
+      if (!map.getSource('event-transition')) {
+        map.addSource('event-transition', {
+          type: 'geojson',
+          data: {
+            type: 'FeatureCollection',
+            features: [],
+          },
+        })
+      }
+
+      if (!map.getLayer('event-transition-line')) {
+        map.addLayer({
+          id: 'event-transition-line',
+          type: 'line',
+          source: 'event-transition',
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round',
+          },
+          paint: {
+            // Slightly brighter than the static path so the animation stands out.
+            'line-color': '#2563eb',
+            'line-width': 6,
+            'line-opacity': 0.95,
+          },
+        })
+      }
+    }
+
+    try {
+      ensureTransitionLayer()
+    } catch {
+      prevActiveEventIndexRef.current = currentIndex
+      return
+    }
+
+    const source = map.getSource('event-transition')
+    if (!source || typeof source.setData !== 'function') {
+      prevActiveEventIndexRef.current = currentIndex
+      return
+    }
+
+    const startTime = performance.now()
+
+    const animate = (now) => {
+      const elapsed = now - startTime
+      const tRaw = elapsed / durationMs
+      const t = tRaw >= 1 ? 1 : tRaw
+
+      // Three distinct phases:
+      // 1) Zoom out while staying on the starting point.
+      // 2) Move along the path at max height (midZoom).
+      // 3) After arriving, zoom in while staying on the target point.
+      const tZoomOutEnd = 0.25
+      const tMoveEnd = 0.75
+
+      let lng
+      let lat
+      let zoom
+
+      if (t <= tZoomOutEnd) {
+        // Phase 1: stay at the starting point, only change zoom.
+        lng = from[0]
+        lat = from[1]
+        const tt = tZoomOutEnd === 0 ? 1 : t / tZoomOutEnd
+        zoom = startZoom + (midZoom - startZoom) * tt
+      } else if (t <= tMoveEnd) {
+        // Phase 2: travel along the path at constant midZoom.
+        const travelT = (t - tZoomOutEnd) / (tMoveEnd - tZoomOutEnd) // 0..1
+        lng = from[0] + (to[0] - from[0]) * travelT
+        lat = from[1] + (to[1] - from[1]) * travelT
+        zoom = midZoom
+      } else {
+        // Phase 3: arrived at target, only zoom in.
+        lng = to[0]
+        lat = to[1]
+        const tt = tMoveEnd === 1 ? 1 : (t - tMoveEnd) / (1 - tMoveEnd)
+        zoom = midZoom + (targetZoom - midZoom) * tt
+      }
+
+      const geojson = {
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'LineString',
+              coordinates: [from, [lng, lat]],
+            },
+          },
+        ],
+      }
+
+      try {
+        source.setData(geojson)
+      } catch {
+        // If Mapbox blows up (e.g. style reloaded), stop animating.
+        transitionAnimationRef.current = null
+        isSyncingFromPropsRef.current = false
+        return
+      }
+
+      // Move the camera along the same line with the same timing.
+      try {
+        map.jumpTo({
+          center: [lng, lat],
+          zoom,
+          pitch: 0,
+          bearing: 0,
+        })
+      } catch {
+        // Ignore camera errors, but still try to finish the animation.
+      }
+
+      if (t < 1) {
+        transitionAnimationRef.current = requestAnimationFrame(animate)
+      } else {
+        // Make sure the final frame reaches the target point exactly.
+        try {
+          source.setData({
+            type: 'FeatureCollection',
+            features: [
+              {
+                type: 'Feature',
+                properties: {},
+                geometry: {
+                  type: 'LineString',
+                  coordinates: [from, to],
+                },
+              },
+            ],
+          })
+          map.jumpTo({
+            center: to,
+            zoom: targetZoom,
+            pitch: 0,
+            bearing: 0,
+          })
+          // Inform the outer app of the final camera state once.
+          if (onCameraChangeRef.current) {
+            onCameraChangeRef.current({
+              center: to,
+              zoom: targetZoom,
+              pitch: 0,
+              bearing: 0,
+            })
+          }
+        } catch {
+          // ignore
+        }
+        transitionAnimationRef.current = null
+        isSyncingFromPropsRef.current = false
+      }
+    }
+
+    transitionAnimationRef.current = requestAnimationFrame(animate)
+    prevActiveEventIndexRef.current = currentIndex
+
+    // Cleanup when dependencies change: handled by cancelling on next run / unmount.
+    return () => {
+      if (transitionAnimationRef.current != null) {
+        cancelAnimationFrame(transitionAnimationRef.current)
+        transitionAnimationRef.current = null
+      }
+      isSyncingFromPropsRef.current = false
+    }
+  }, [activeEventIndex, events])
+
+  // Keep the static path visibility in sync with the current mode (edit vs view).
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+
+    const layerConfigs = [
+      { id: 'event-path-solid', visibleOpacity: 0.8 },
+      { id: 'event-path-dashed', visibleOpacity: 0.8 },
+      { id: 'event-path-dotted', visibleOpacity: 0.8 },
+      { id: 'event-path-golden-age', visibleOpacity: 0.85 },
+      { id: 'event-path-memory-trail', visibleOpacity: 0.85 },
+      { id: 'event-path-important-jump', visibleOpacity: 0.9 },
+    ]
+
+    layerConfigs.forEach(({ id, visibleOpacity }) => {
+      if (!map.getLayer(id)) return
+      try {
+        map.setPaintProperty(id, 'line-opacity', showStaticPath ? visibleOpacity : 0.0)
+      } catch {
+        // ignore paint update errors
+      }
+    })
+  }, [showStaticPath])
 
   const token = import.meta.env.VITE_MAPBOX_TOKEN
   if (!token) {

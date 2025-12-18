@@ -155,19 +155,6 @@ function ViewStoryView({ onEventsChange, onActiveEventIndexChange, onMapCameraCh
     const clamped = Math.max(0, Math.min(events.length - 1, nextIndex))
     setCurrentEventIndex(clamped)
     onActiveEventIndexChange?.(clamped)
-
-    const ev = events[clamped]
-    const coords = ev?.location?.coordinates
-    if (coords?.lng != null && coords?.lat != null && onMapCameraChange) {
-      const zoomRaw = ev?.location?.mapView?.zoom
-      const zoom = typeof zoomRaw === 'number' ? zoomRaw : 10
-      onMapCameraChange({
-        center: [coords.lng, coords.lat],
-        zoom,
-        pitch: 0,
-        bearing: 0,
-      })
-    }
   }
 
   useEffect(() => {
