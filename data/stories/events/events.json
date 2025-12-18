@@ -20,12 +20,6 @@
         "mapStyle": "mapbox://styles/mapbox/streets-v12"
       }
     },
-    "transition": {
-      "type": "FlyTo",
-      "durationSeconds": 4,
-      "sourceEventId": null,
-      "lineStyleKey": "Dashed"
-    },
     "content": {
       "textHtml": "שמי רותי רבקה. נקראתי רותי על שם רות המואביה, כי נולדתי בחג השבועות. אני הבת היחידה והקטנה בילדי המשפחה. נולדתי ב11.6.1930.\n\nגרנו בכפר \"ז'וקוב\" שהיה אז בתחומי צ'כוסלובקיה (כיום במערב אוקרינה בסמוך לגבול עם סלובקיה). כפר לא גדול שאוכלוסייתו היתה של דוברי רוסית. בכל הכפר גרו בסך הכל שש משפחות יהודיות.\nמיעוט היהודים בכפר הוא הסיבה שיצאנו לא אחת לכפר הסמוך לוחוב או לעיר הקרובה מונקטש לבית הכנסת או למקווה.\n\nהיחסים בינינו ובין שכנינו הנוצרים היו טובים יחסי כבוד הדדים היו בינינו. עסקנו גם במסחר, והגויים היו באים לקנות במכולת בביתנו. לא הייתה אנטישמיות בכלל. היו יחסי שכנות תקינים בהחלט.",
       "media": [],
@@ -35,6 +29,9 @@
         "urlOld": "/stories/images/1765922894161-tbd73y.jpg",
         "urlNew": "/stories/images/1765972550825-0fs1lc.jpg"
       }
+    },
+    "transition": {
+      "transportType": "walking"
     }
   },
   {
@@ -58,12 +55,6 @@
         "mapStyle": "mapbox://styles/mapbox/streets-v12"
       }
     },
-    "transition": {
-      "type": "FlyTo",
-      "durationSeconds": 3,
-      "sourceEventId": "E001",
-      "lineStyleKey": "Dashed"
-    },
     "content": {
       "textHtml": "כשאחיי היו צעירים, לא היה מניין בכפר שלנו, והם, יחד עם אבי, הלכו ברגל כל שבת וחג להתפלל בבית הכנסת שהיה בחצר של סבתא בלוחוב.\n\nבלוחוב גרה סבתא פייגה, אם אמי, אצל דודי, שלמה ומדי פעם היתה מבלה אצלנו את השבת.\nאמי חוווה נולדה בלוחוב בשנת 1893 לפייגה ומרדכי.",
       "media": [],
@@ -73,6 +64,9 @@
         "urlOld": "",
         "urlNew": ""
       }
+    },
+    "transition": {
+      "transportType": "walking"
     }
   },
   {
@@ -96,12 +90,6 @@
         "mapStyle": "mapbox://styles/mapbox/streets-v12"
       }
     },
-    "transition": {
-      "type": "ArcFlyWithPoint",
-      "durationSeconds": 3,
-      "sourceEventId": "E002",
-      "lineStyleKey": "Dashed"
-    },
     "content": {
       "textHtml": "בשנת 1938 כבשו ההונגרים את צ'כוסלובקיה והביאו איתם את המלחמהץ בן לילה הפכנו מצ'כים להונגריםף ודגלים הונגריים החליפו את הדגלים הצ'כיים. אמא, כמו שאר היהודים, מיהרה ותפרה דגל הונגריף אדום לבן וירוק, והאחים תלו אותו על גג הבית.\n\nלאט לאט הונחתו על היהודים הגבלות וגזרות שהכבידו מאוד על החיים.אסור היה לנוצרי לעבוד אצל היהודים, וכך נפרדנו מהעוזרת מריה ומהמכונאי. אז גם החלו הקצבות עם נקודות. ההונגרים בנו חנות גדולה באמצע הכפר וכולם הלכו לקנות שם. על היהודים נאסר למכור את המוצרים שבהקצבות, ואלה היו כמובן רוב המצרכים החיוניים, המזון הבסיסי, אותו נתנו במנות תמורת תלושים. כל יתר המצרכים, כמו שרכי נעלים וגפרורים השו לנו להחזיק בחנות, כדי שנמשיך לשלם מיסים.",
       "media": [],
@@ -111,6 +99,9 @@
         "urlOld": "",
         "urlNew": ""
       }
+    },
+    "transition": {
+      "transportType": "walking"
     }
   },
   {
@@ -134,12 +125,6 @@
         "mapStyle": "mapbox://styles/mapbox/streets-v12"
       }
     },
-    "transition": {
-      "type": "ArcFlyWithPoint",
-      "durationSeconds": 3,
-      "sourceEventId": "E004",
-      "lineStyleKey": ""
-    },
     "content": {
       "textHtml": "",
       "media": [],
@@ -149,6 +134,9 @@
         "urlOld": "",
         "urlNew": ""
       }
+    },
+    "transition": {
+      "transportType": "train"
     }
   },
   {
@@ -172,12 +160,6 @@
         "mapStyle": "mapbox://styles/mapbox/streets-v12"
       }
     },
-    "transition": {
-      "type": "ArcFlyWithPoint",
-      "durationSeconds": 3,
-      "sourceEventId": "E005",
-      "lineStyleKey": ""
-    },
     "content": {
       "textHtml": "",
       "media": [],
@@ -187,6 +169,9 @@
         "urlOld": "",
         "urlNew": ""
       }
+    },
+    "transition": {
+      "transportType": "car"
     }
   },
   {
@@ -210,12 +195,6 @@
         "mapStyle": "mapbox://styles/mapbox/streets-v12"
       }
     },
-    "transition": {
-      "type": "ArcFlyWithPoint",
-      "durationSeconds": 3,
-      "sourceEventId": "E006",
-      "lineStyleKey": ""
-    },
     "content": {
       "textHtml": "",
       "media": [],
@@ -225,6 +204,9 @@
         "urlOld": "",
         "urlNew": ""
       }
+    },
+    "transition": {
+      "transportType": "airplane"
     }
   },
   {
@@ -247,12 +229,6 @@
         "bearing": 0,
         "mapStyle": "mapbox://styles/mapbox/streets-v12"
       }
-    },
-    "transition": {
-      "type": "ArcFlyWithPoint",
-      "durationSeconds": 3,
-      "sourceEventId": "E007",
-      "lineStyleKey": ""
     },
     "content": {
       "textHtml": "",
@@ -285,12 +261,6 @@
         "bearing": 0,
         "mapStyle": "mapbox://styles/mapbox/streets-v12"
       }
-    },
-    "transition": {
-      "type": "ArcFlyWithPoint",
-      "durationSeconds": 3,
-      "sourceEventId": "E008",
-      "lineStyleKey": ""
     },
     "content": {
       "textHtml": "",

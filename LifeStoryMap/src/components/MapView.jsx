@@ -23,6 +23,7 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
   const transitionAnimationRef = useRef(null) // Stores current requestAnimationFrame id
   const latestEventPathGeoJsonRef = useRef({ type: 'FeatureCollection', features: [] }) // latest FeatureCollection for the path
   const isSyncingFromPropsRef = useRef(false) // Track if we're syncing from props to avoid feedback loop
+  const transportMarkerRef = useRef(null) // Transport marker (airplane icon) that moves along the path
   
   // Store callbacks in refs to avoid re-initializing the map when they change
   const onMapClickRef = useRef(onMapClick)
@@ -261,6 +262,15 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
         markerData.marker.remove()
       })
       eventMarkersRef.current.clear()
+      // Clean up transport marker
+      if (transportMarkerRef.current) {
+        try {
+          transportMarkerRef.current.remove()
+          transportMarkerRef.current = null
+        } catch {
+          // ignore
+        }
+      }
       map.remove()
       mapRef.current = null
       markerRef.current = null
@@ -698,6 +708,15 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
           // ignore
         }
       }
+      // Remove transport marker if it exists
+      if (transportMarkerRef.current) {
+        try {
+          transportMarkerRef.current.remove()
+          transportMarkerRef.current = null
+        } catch {
+          // ignore
+        }
+      }
       prevActiveEventIndexRef.current = null
       return
     }
@@ -737,6 +756,58 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
     const from = [fromCoords.lng, fromCoords.lat]
     const to = [toCoords.lng, toCoords.lat]
 
+    // If going backward (to a previous event), skip animation and jump directly
+    const isGoingBackward = currentIndex < prevIndex
+    if (isGoingBackward) {
+      // Clear the transition line
+      const source = map.getSource('event-transition')
+      if (source && typeof source.setData === 'function') {
+        try {
+          source.setData({ type: 'FeatureCollection', features: [] })
+        } catch {
+          // ignore
+        }
+      }
+
+      // Remove transport marker if it exists
+      if (transportMarkerRef.current) {
+        try {
+          transportMarkerRef.current.remove()
+          transportMarkerRef.current = null
+        } catch {
+          // ignore
+        }
+      }
+
+      // Jump directly to the target location without animation
+      const toZoomRaw = toEvent?.location?.mapView?.zoom
+      const currentZoom = map.getZoom()
+      const targetZoom = typeof toZoomRaw === 'number' ? toZoomRaw : currentZoom
+
+      try {
+        map.jumpTo({
+          center: to,
+          zoom: targetZoom,
+          pitch: 0,
+          bearing: 0,
+        })
+        // Inform the outer app of the final camera state
+        if (onCameraChangeRef.current) {
+          onCameraChangeRef.current({
+            center: to,
+            zoom: targetZoom,
+            pitch: 0,
+            bearing: 0,
+          })
+        }
+      } catch {
+        // ignore
+      }
+
+      prevActiveEventIndexRef.current = currentIndex
+      return
+    }
+
     // Compute duration based on geographical distance between the two points (in km).
     const toRad = (deg) => (deg * Math.PI) / 180
     const R = 6371 // Earth radius in km
@@ -752,7 +823,7 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
 
     // Map distance to duration: short hops are quick (but at least 4s), long jumps are slower.
     // Clamp final duration strictly to the 4–13s range.
-    const secondsFromDistance = 4 + Math.min(9, (distanceKm / 3000) * 9) // base 4s, up to 13s for very long jumps
+    const secondsFromDistance = 3 + Math.min(9, (distanceKm / 500) * 9) // base 4s, up to 13s for very long jumps
     const durationMs = Math.max(4000, Math.min(13000, secondsFromDistance * 1000))
 
     // Camera zoom interpolation: start closer, zoom out (higher "altitude") in the middle,
@@ -773,13 +844,13 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
     if (!Number.isFinite(distanceKm) || distanceKm <= 0) {
       extraZoomOut = 0.3
     } else if (distanceKm <= 50) {
-      // 0–50km: from ~0.3 to ~1 zoom level farther out
+      // 0–50km: from ~0.3 to ~3 zoom levels farther out
       const f = distanceKm / 50 // 0..1
-      extraZoomOut = 0.3 + f * 0.7
+      extraZoomOut = 0.3 + f * 2.7
     } else {
-      // >50km: start at 1 level out, then ramp up to +10 for very long jumps (~4000km+)
+      // >50km: start at 3 level out, then ramp up to +10 for very long jumps (~4000km+)
       const distanceFactor = Math.min(1, (distanceKm - 50) / 3950) // 0..1
-      extraZoomOut = 1 + distanceFactor * 9
+      extraZoomOut = 3 + distanceFactor * 7
     }
     const midZoom = Math.max(0.5, baseMin - extraZoomOut)
 
@@ -830,6 +901,62 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
       prevActiveEventIndexRef.current = currentIndex
       return
     }
+
+    // Get transport type from the previous event (the one we're transitioning FROM)
+    // The transport type is stored on the event that leads TO the next event
+    const transportType = fromEvent?.transition?.transportType || 'airplane'
+
+    // Function to get SVG icon based on transport type
+    const getTransportIcon = (type) => {
+      const icons = {
+        walking: `<path d="M9 4c-1.1 0-2 .9-2 2v3c0 .6-.4 1-1 1s-1-.4-1-1V6c0-2.2 1.8-4 4-4s4 1.8 4 4v3c0 .6-.4 1-1 1s-1-.4-1-1V6c0-1.1-.9-2-2-2zm-2 8c0-1.1.9-2 2-2s2 .9 2 2v6c0 1.1-.9 2-2 2s-2-.9-2-2v-6zm6-2c1.1 0 2 .9 2 2v6c0 1.1-.9 2-2 2s-2-.9-2-2v-6c0-1.1.9-2 2-2z" fill="currentColor"/><circle cx="8" cy="18" r="1.5" fill="currentColor"/><circle cx="16" cy="18" r="1.5" fill="currentColor"/>`,
+        car: `<path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5 .67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5 .67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z" fill="currentColor"/>`,
+        train: `<path d="M12 2c-4 0-8 .5-8 4v9.5C4 17.43 5.57 19 7.5 19L6 20.5h1.5l1.5-1.5h6l1.5 1.5H18l-1.5-1.5c1.93 0 3.5-1.57 3.5-3.5V6c0-3.5-4-4-8-4zM7.5 17c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5 .67 1.5 1.5S8.33 17 7.5 17zm9 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5 .67 1.5 1.5-.67 1.5-1.5 1.5zM16 11H8V6h8v5z" fill="currentColor"/>`,
+        airplane: `<path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="currentColor"/>`,
+        horse: `<path d="M19.5 4.5c-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5-1.05 0-2.05.16-3 .46V2H5v2.46c-.95-.3-1.95-.46-3-.46v2.5c.55 0 1 .45 1 1v1.5c0 .55-.45 1-1 1v1.5c0 .55.45 1 1 1v1.5c0 .55.45 1 1 1h.5c.28 0 .5.22.5.5v4c0 .28.22.5.5.5h3c.28 0 .5-.22.5-.5v-4c0-.28.22-.5.5-.5h.5c.28 0 .5-.22.5-.5v-1c0-.55.45-1 1-1h1c.55 0 1 .45 1 1v1c0 .28.22.5.5.5h.5c.28 0 .5-.22.5-.5v-2c0-.55-.45-1-1-1v-1.5c.55 0 1-.45 1-1v-1.5c0-.55-.45-1-1-1v-1.5c0-.55-.45-1-1-1z" fill="currentColor"/>`,
+      }
+      return icons[type] || icons.airplane
+    }
+
+    // Create transport marker with icon based on transport type
+    const createTransportMarker = () => {
+      // Remove existing marker if any
+      if (transportMarkerRef.current) {
+        try {
+          transportMarkerRef.current.remove()
+        } catch {
+          // ignore
+        }
+      }
+
+      // Create a custom HTML element for the transport icon in a circle
+      const el = document.createElement('div')
+      el.className = 'transport-marker'
+      el.innerHTML = `
+        <div class="transport-marker-circle">
+          <svg class="transport-marker-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            ${getTransportIcon(transportType)}
+          </svg>
+        </div>
+      `
+      el.style.width = '40px'
+      el.style.height = '40px'
+      el.style.cursor = 'default'
+      el.style.pointerEvents = 'none'
+      el.style.display = 'none' // Initially hidden - will show during movement phase
+
+      const marker = new mapboxgl.Marker({
+        element: el,
+        anchor: 'center',
+      })
+        .setLngLat(from)
+        .addTo(map)
+
+      transportMarkerRef.current = marker
+      return marker
+    }
+
+    const transportMarker = createTransportMarker()
 
     const startTime = performance.now()
 
@@ -904,6 +1031,56 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
         // Ignore camera errors, but still try to finish the animation.
       }
 
+      // Update transport marker - only show during movement phase (phase 2)
+      if (transportMarker && transportMarkerRef.current) {
+        try {
+          const markerEl = transportMarkerRef.current.getElement()
+          if (markerEl) {
+            // Show marker only during movement phase (phase 2)
+            if (t > tZoomOutEnd && t <= tMoveEnd) {
+              markerEl.style.display = 'block'
+              transportMarkerRef.current.setLngLat([lng, lat])
+              
+              // Calculate bearing (direction) and rotate the transport icon
+              // Only rotate for airplane transport type
+              if (transportType === 'airplane') {
+                // Calculate previous position for bearing calculation
+                const travelT = (t - tZoomOutEnd) / (tMoveEnd - tZoomOutEnd)
+                const deltaT = 0.01 / (tMoveEnd - tZoomOutEnd) // Small time step back
+                const prevTravelT = Math.max(0, travelT - deltaT)
+                const prevLng = from[0] + (to[0] - from[0]) * prevTravelT
+                const prevLat = from[1] + (to[1] - from[1]) * prevTravelT
+                
+                // Calculate bearing in degrees
+                const dLng = (lng - prevLng) * Math.PI / 180
+                const lat1Rad = prevLat * Math.PI / 180
+                const lat2Rad = lat * Math.PI / 180
+                const y = Math.sin(dLng) * Math.cos(lat2Rad)
+                const x = Math.cos(lat1Rad) * Math.sin(lat2Rad) - Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLng)
+                const bearing = Math.atan2(y, x) * 180 / Math.PI
+                
+                // Update the icon rotation
+                const iconEl = markerEl.querySelector('.transport-marker-icon')
+                if (iconEl) {
+                  iconEl.style.transform = `rotate(${bearing}deg)`
+                }
+              } else {
+                // For non-airplane transport types, reset rotation to 0
+                const iconEl = markerEl.querySelector('.transport-marker-icon')
+                if (iconEl) {
+                  iconEl.style.transform = 'rotate(0deg)'
+                }
+              }
+            } else {
+              // Hide marker during zoom out (phase 1) and zoom in (phase 3)
+              markerEl.style.display = 'none'
+            }
+          }
+        } catch {
+          // ignore marker update errors
+        }
+      }
+
       if (t < 1) {
         transitionAnimationRef.current = requestAnimationFrame(animate)
       } else {
@@ -940,6 +1117,15 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
         } catch {
           // ignore
         }
+        // Remove transport marker when animation completes
+        if (transportMarkerRef.current) {
+          try {
+            transportMarkerRef.current.remove()
+            transportMarkerRef.current = null
+          } catch {
+            // ignore
+          }
+        }
         transitionAnimationRef.current = null
         isSyncingFromPropsRef.current = false
       }
@@ -953,6 +1139,15 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
       if (transitionAnimationRef.current != null) {
         cancelAnimationFrame(transitionAnimationRef.current)
         transitionAnimationRef.current = null
+      }
+      // Remove transport marker on cleanup
+      if (transportMarkerRef.current) {
+        try {
+          transportMarkerRef.current.remove()
+          transportMarkerRef.current = null
+        } catch {
+          // ignore
+        }
       }
       isSyncingFromPropsRef.current = false
     }
@@ -982,6 +1177,123 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
     })
   }, [showStaticPath])
 
+  const handleZoomIn = () => {
+    const map = mapRef.current
+    if (!map) return
+
+    const allEvents = Array.isArray(events) ? events : []
+    const currentIndex = typeof activeEventIndex === 'number' ? activeEventIndex : null
+    
+    if (currentIndex != null && currentIndex >= 0 && currentIndex < allEvents.length) {
+      const event = allEvents[currentIndex]
+      const coords = event?.location?.coordinates
+      const savedZoom = event?.location?.mapView?.zoom
+      
+      if (coords && coords.lng != null && coords.lat != null) {
+        const targetZoom = typeof savedZoom === 'number' && savedZoom > 0 ? savedZoom : 15
+        isSyncingFromPropsRef.current = true
+        map.easeTo({
+          center: [coords.lng, coords.lat],
+          zoom: targetZoom,
+          pitch: 0,
+          bearing: 0,
+          duration: 600,
+        })
+        setTimeout(() => {
+          isSyncingFromPropsRef.current = false
+        }, 650)
+      }
+    } else {
+      // If no active event, zoom in on current center
+      const currentZoom = map.getZoom()
+      const targetZoom = Math.min(18, currentZoom + 2)
+      isSyncingFromPropsRef.current = true
+      map.easeTo({
+        zoom: targetZoom,
+        duration: 600,
+      })
+      setTimeout(() => {
+        isSyncingFromPropsRef.current = false
+      }, 650)
+    }
+  }
+
+  const handleZoomOut = () => {
+    const map = mapRef.current
+    if (!map) return
+
+    const allEvents = Array.isArray(events) ? events : []
+    const validCoords = []
+    
+    allEvents.forEach((event) => {
+      const coords = event?.location?.coordinates
+      if (coords && coords.lng != null && coords.lat != null) {
+        validCoords.push([coords.lng, coords.lat])
+      }
+    })
+
+    if (validCoords.length === 0) {
+      // If no events, zoom out to world view
+      isSyncingFromPropsRef.current = true
+      map.easeTo({
+        zoom: 2,
+        duration: 600,
+        pitch: 0,
+        bearing: 0,
+      })
+      setTimeout(() => {
+        isSyncingFromPropsRef.current = false
+      }, 650)
+      return
+    }
+
+    if (validCoords.length === 1) {
+      // Single event: center on it with a wide zoom
+      isSyncingFromPropsRef.current = true
+      map.easeTo({
+        center: validCoords[0],
+        zoom: 8,
+        duration: 600,
+        pitch: 0,
+        bearing: 0,
+      })
+      setTimeout(() => {
+        isSyncingFromPropsRef.current = false
+      }, 650)
+      return
+    }
+
+    // Multiple events: fit bounds
+    const lngs = validCoords.map(c => c[0])
+    const lats = validCoords.map(c => c[1])
+    const minLng = Math.min(...lngs)
+    const maxLng = Math.max(...lngs)
+    const minLat = Math.min(...lats)
+    const maxLat = Math.max(...lats)
+
+    // Add padding to the bounds
+    const padding = {
+      top: 50,
+      bottom: 50,
+      left: 50,
+      right: 100, // Extra padding on right for sidebar
+    }
+
+    isSyncingFromPropsRef.current = true
+    map.fitBounds(
+      [[minLng, minLat], [maxLng, maxLat]],
+      {
+        padding,
+        duration: 800,
+        pitch: 0,
+        bearing: 0,
+      }
+    )
+    setTimeout(() => {
+      isSyncingFromPropsRef.current = false
+    }, 850)
+  }
+
   const token = import.meta.env.VITE_MAPBOX_TOKEN
   if (!token) {
     return (
@@ -991,7 +1303,31 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
     )
   }
 
-  return <div ref={containerRef} className="mapbox-map-root" />
+  return (
+    <>
+      <div ref={containerRef} className="mapbox-map-root" />
+      <div className="map-zoom-controls">
+        <button 
+          className="map-zoom-btn map-zoom-in" 
+          onClick={handleZoomIn}
+          aria-label="Zoom in"
+          title="Zoom in"
+          type="button"
+        >
+          <span className="zoom-icon">+</span>
+        </button>
+        <button 
+          className="map-zoom-btn map-zoom-out" 
+          onClick={handleZoomOut}
+          aria-label="Zoom out"
+          title="Zoom out"
+          type="button"
+        >
+          <span className="zoom-icon">−</span>
+        </button>
+      </div>
+    </>
+  )
 }
 
 export default MapView

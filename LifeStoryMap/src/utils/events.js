@@ -36,12 +36,6 @@ export function createEmptyEvent(previousEventId) {
         mapStyle: 'mapbox://styles/mapbox/streets-v12',
       },
     },
-    transition: {
-      type: 'ArcFlyWithPoint',
-      durationSeconds: 3,
-      sourceEventId: previousEventId || null,
-      lineStyleKey: '',
-    },
     content: {
       textHtml: '',
       media: [],

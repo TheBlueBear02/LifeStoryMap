@@ -158,51 +158,6 @@ function EventBlock({
       {isExpanded && (
         <div className="event-details">
           <div className="event-details-section">
-            <h3>Transition</h3>
-            <div className="transition-row">
-              <label>
-                Type
-                <select
-                  value={event.transition?.type || 'ArcFlyWithPoint'}
-                  onChange={(e) => handleInputChange(['transition', 'type'], e.target.value)}
-                >
-                  <option value="ArcFlyWithPoint">Arc fly with point</option>
-                  <option value="FlyTo">Fly to</option>
-                  <option value="Instant">Instant jump</option>
-                </select>
-              </label>
-              <label className="transition-duration-field">
-                Duration (secs)
-                <input
-                  type="number"
-                  min="0"
-                  value={event.transition?.durationSeconds ?? ''}
-                  onChange={(e) =>
-                    handleInputChange(
-                      ['transition', 'durationSeconds'],
-                      e.target.value === '' ? '' : Number(e.target.value),
-                    )
-                  }
-                />
-              </label>
-              <label>
-                Line style
-                <select
-                  value={event.transition?.lineStyleKey || ''}
-                  onChange={(e) => handleInputChange(['transition', 'lineStyleKey'], e.target.value)}
-                >
-                  <option value="">Default (solid)</option>
-                  <option value="Dashed">Dashed</option>
-                  <option value="Dotted">Dotted</option>
-                  <option value="GoldenAgePath">Golden age path</option>
-                  <option value="MemoryTrail">Memory trail</option>
-                  <option value="ImportantJump">Important jump</option>
-                </select>
-              </label>
-            </div>
-          </div>
-
-          <div className="event-details-section">
             <h3>Content</h3>
             <label>
               Text
@@ -320,6 +275,35 @@ function EventBlock({
                 </label>
               </div>
             )}
+          </div>
+          
+          <div className="event-details-section">
+            <h3>Transition to Next Event</h3>
+            <label>
+              Transport Type
+              <div className="transport-type-selector">
+                {[
+                  { value: 'walking', label: 'Walking', icon: '🚶' },
+                  { value: 'car', label: 'Car', icon: '🚗' },
+                  { value: 'train', label: 'Train', icon: '🚂' },
+                  { value: 'airplane', label: 'Airplane', icon: '✈️' },
+                  { value: 'horse', label: 'Horse', icon: '🐴' },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={`transport-type-option ${
+                      (event.transition?.transportType || 'airplane') === option.value ? 'active' : ''
+                    }`}
+                    onClick={() => handleInputChange(['transition', 'transportType'], option.value)}
+                    title={option.label}
+                  >
+                    <span className="transport-type-icon">{option.icon}</span>
+                    <span className="transport-type-label">{option.label}</span>
+                  </button>
+                ))}
+              </div>
+            </label>
           </div>
         </div>
       )}
