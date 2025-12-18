@@ -241,6 +241,7 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
         // legacy (older versions of the app)
         'event-path',
         'event-transition-line',
+        'event-overview-path-dashed',
       ].forEach((id) => {
         if (map.getLayer(id)) {
           map.removeLayer(id)
@@ -251,6 +252,9 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
       }
       if (map.getSource('event-transition')) {
         map.removeSource('event-transition')
+      }
+      if (map.getSource('event-overview-path')) {
+        map.removeSource('event-overview-path')
       }
       // Clean up all event markers
       eventMarkersRef.current.forEach((markerData) => {
@@ -565,12 +569,138 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
         eventMarkersRef.current.set(coordKey, { marker, color: markerColor })
       }
     })
-  }, [events, activeEventIndex])
+
+    // Grey dashed overview path: show all event connections when viewing first or last event.
+    // Hide completely when events is empty (e.g., on homepage).
+    const shouldShowOverviewPath = !showStaticPath && Array.isArray(events) && events.length > 0 && typeof activeEventIndex === 'number' && (activeEventIndex === 0 || activeEventIndex === events.length - 1)
+
+    const buildOverviewPathGeoJson = (allEvents) => {
+      const nodes = []
+      allEvents.forEach((event) => {
+        const coords = event?.location?.coordinates
+        if (coords && coords.lng != null && coords.lat != null) {
+          nodes.push([coords.lng, coords.lat])
+        }
+      })
+
+      const features = []
+      for (let i = 1; i < nodes.length; i += 1) {
+        const prev = nodes[i - 1]
+        const cur = nodes[i]
+        if (prev && cur && prev[0] === cur[0] && prev[1] === cur[1]) continue // Skip zero-length segments
+        features.push({
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'LineString',
+            coordinates: [prev, cur],
+          },
+        })
+      }
+
+      return {
+        type: 'FeatureCollection',
+        features,
+      }
+    }
+
+    const ensureOverviewPathLayer = () => {
+      if (!map.getSource('event-overview-path')) {
+        map.addSource('event-overview-path', {
+          type: 'geojson',
+          data: buildOverviewPathGeoJson(events),
+        })
+      }
+
+      if (!map.getLayer('event-overview-path-dashed')) {
+        map.addLayer({
+          id: 'event-overview-path-dashed',
+          type: 'line',
+          source: 'event-overview-path',
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round',
+          },
+          paint: {
+            'line-color': '#e3e3e3', // Grey color
+            'line-width': 4,
+            'line-opacity': 0.6,
+            'line-dasharray': [3, 3],
+          },
+        })
+      }
+    }
+
+    const updateOverviewPath = () => {
+      try {
+        ensureOverviewPathLayer()
+        const source = map.getSource('event-overview-path')
+        if (source && typeof source.setData === 'function') {
+          source.setData(buildOverviewPathGeoJson(events))
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    if (shouldShowOverviewPath) {
+      try {
+        updateOverviewPath()
+        if (map.getLayer('event-overview-path-dashed')) {
+          map.setLayoutProperty('event-overview-path-dashed', 'visibility', 'visible')
+        }
+      } catch {
+        map.once('idle', () => {
+          try {
+            updateOverviewPath()
+            if (map.getLayer('event-overview-path-dashed')) {
+              map.setLayoutProperty('event-overview-path-dashed', 'visibility', 'visible')
+            }
+          } catch {
+            // ignore
+          }
+        })
+      }
+    } else {
+      if (map.getLayer('event-overview-path-dashed')) {
+        try {
+          map.setLayoutProperty('event-overview-path-dashed', 'visibility', 'none')
+        } catch {
+          // ignore
+        }
+      }
+      // Clear overview path data when hidden (e.g., on homepage or middle events).
+      const source = map.getSource('event-overview-path')
+      if (source && typeof source.setData === 'function') {
+        try {
+          source.setData({ type: 'FeatureCollection', features: [] })
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }, [events, activeEventIndex, showStaticPath])
 
   // Animate a line between the previous and current active event when the active index changes.
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
+
+    const allEvents = Array.isArray(events) ? events : []
+    
+    // Clear transition line when events is empty (e.g., on homepage).
+    if (allEvents.length === 0) {
+      const source = map.getSource('event-transition')
+      if (source && typeof source.setData === 'function') {
+        try {
+          source.setData({ type: 'FeatureCollection', features: [] })
+        } catch {
+          // ignore
+        }
+      }
+      prevActiveEventIndexRef.current = null
+      return
+    }
 
     const currentIndex = typeof activeEventIndex === 'number' ? activeEventIndex : null
     const prevIndex = typeof prevActiveEventIndexRef.current === 'number' ? prevActiveEventIndexRef.current : null
@@ -580,8 +710,6 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
       prevActiveEventIndexRef.current = currentIndex
       return
     }
-
-    const allEvents = Array.isArray(events) ? events : []
     const fromEvent = allEvents[prevIndex]
     const toEvent = allEvents[currentIndex]
 
