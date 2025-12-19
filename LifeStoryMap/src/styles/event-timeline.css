@@ -172,11 +172,22 @@
   .event-timeline {
     max-width: 100%;
     padding: 0 1rem;
+    margin: 0;
   }
 
   .event-timeline-container {
-    height: 56px;
+    height: 64px;
     padding: 0.65rem 0.85rem;
+    background: rgba(245, 245, 245, 0.98);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.85);
+  }
+
+  /* Make the timeline spread wider on phone view */
+  .event-timeline-track {
+    /* Bigger value = dots spread further left/right */
+    --timeline-spread: 90%;
+    /* Push circles further away from the center capsule */
+    --timeline-capsule-offset: clamp(12px, 3.5vw, 180px);
   }
 
   .timeline-capsule {

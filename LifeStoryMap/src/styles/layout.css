@@ -12,6 +12,18 @@
   z-index: 0;
 }
 
+/* On mobile view-story mode, ensure map is visible and behind other content */
+@media (max-width: 768px) {
+  .app-container .map-root {
+    z-index: 0;
+  }
+  
+  /* Show map when app-container has view-story-mode class */
+  .app-container.view-story-mode .map-root {
+    display: block;
+  }
+}
+
 .mapbox-map-root {
   width: 100%;
   height: 100%;
@@ -371,16 +383,39 @@
 .app-root.view-story-mode::-webkit-scrollbar {
   display: none;
 }
-/* Phone view: Hide map and show only sidebar */
+/* Phone view: Show map in view-story mode, hide in other modes */
 @media (max-width: 768px) {
+  /* Let the map use the full visual viewport on mobile
+     and avoid clipping fixed-position children like .map-root */
+  .app-container {
+    min-height: 100vh;
+    height: auto;
+    overflow: visible;
+  }
+
   .map-root {
     display: none;
+  }
+
+  /* Show map when app-container has view-story-mode class */
+  .app-container.view-story-mode .map-root {
+    display: block;
+    z-index: 0;
   }
 
   .app-root {
     width: 100%;
     max-width: 100%;
     margin-right: 0;
+  }
+
+  /* In view-story mode, make app-root transparent and overlay content */
+  .app-root.view-story-mode {
+    background: transparent;
+    border-left: none;
+    box-shadow: none;
+    z-index: 1;
+    padding: 0;
   }
 }
 

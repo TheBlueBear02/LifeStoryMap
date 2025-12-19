@@ -94,7 +94,7 @@ function App() {
   }
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${isViewMode ? 'view-story-mode' : ''}`}>
       <div className="map-root">
         <MapView
           camera={mapCamera}
@@ -104,6 +104,7 @@ function App() {
           events={isStoryMode ? events : []}
           activeEventIndex={isStoryMode ? expandedEventIndex : null}
           showStaticPath={isEditMode}
+          routeKey={location.pathname}
         />
       </div>
       <div className={`app-root ${isViewMode ? 'view-story-mode' : ''}`}>

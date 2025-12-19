@@ -13,8 +13,9 @@ import 'mapbox-gl/dist/mapbox-gl.css'
  * - events: Array of event objects with location.coordinates
  * - activeEventIndex: Index of the currently expanded/active event
  * - showStaticPath: whether to show the static path between all events
+ * - routeKey: string that changes when the route/layout changes (used to force resize)
  */
-function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = [], activeEventIndex = null, showStaticPath = true }) {
+function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = [], activeEventIndex = null, showStaticPath = true, routeKey }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const markerRef = useRef(null)
@@ -334,6 +335,30 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
       markerRef.current.setLngLat([markerLocation.lng, markerLocation.lat])
     }
   }, [markerLocation])
+
+  // When the route/layout changes (e.g., navigating from home to view-story),
+  // force Mapbox to recalculate its size. This fixes the issue where the map
+  // is initialised while hidden (display:none) and appears in a small area
+  // until the page is reloaded.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+
+    // Use rAF + timeout so CSS/layout changes have applied before resizing.
+    const id = window.requestAnimationFrame(() => {
+      setTimeout(() => {
+        try {
+          map.resize()
+        } catch {
+          // ignore resize failures
+        }
+      }, 0)
+    })
+
+    return () => {
+      window.cancelAnimationFrame(id)
+    }
+  }, [routeKey])
 
   // Update event markers (grey pins for all events, blue for active event) and path
   useEffect(() => {
