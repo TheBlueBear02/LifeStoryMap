@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import EventBlock from '../components/EventBlock.jsx'
-import { createEmptyEvent, generateNextEventId } from '../utils/events.js'
+import { createEmptyEvent, generateNextEventId, isSpecialEvent, ensureSpecialEvents } from '../utils/events.js'
 import { useStoryData } from '../hooks/useStoryData.js'
 import { useLocationPicker } from '../hooks/useLocationPicker.js'
 import { uploadImage } from '../services/imageService.js'
@@ -45,10 +45,11 @@ function EditStoryView({
   // Sync loaded events to local state
   useEffect(() => {
     if (loadedEvents.length > 0 || !loading) {
-      setEvents(loadedEvents)
+      const ensuredEvents = ensureSpecialEvents(loadedEvents)
+      setEvents(ensuredEvents)
       setIsDirty(false)
       if (onEventsChange) {
-        onEventsChange(loadedEvents)
+        onEventsChange(ensuredEvents)
       }
     }
   }, [loadedEvents, loading, onEventsChange])
@@ -102,15 +103,32 @@ function EditStoryView({
           if (i !== index) return event
           const clone = structuredClone ? structuredClone(event) : JSON.parse(JSON.stringify(event))
           if (!clone.content || typeof clone.content !== 'object') clone.content = {}
-          if (!Array.isArray(clone.content.media)) clone.content.media = []
-          const imgIndex = clone.content.media.findIndex((m) => m && m.type === 'image')
-          const nextItem = {
-            ...(imgIndex >= 0 ? clone.content.media[imgIndex] : {}),
-            type: 'image',
-            url,
+          
+          // For special events, use simple media array
+          if (isSpecialEvent(clone)) {
+            if (!Array.isArray(clone.content.media)) clone.content.media = []
+            const nextItem = {
+              type: 'image',
+              url,
+            }
+            // Replace first image or add new one
+            if (clone.content.media.length > 0) {
+              clone.content.media[0] = nextItem
+            } else {
+              clone.content.media.push(nextItem)
+            }
+          } else {
+            // For regular events, use imageComparison
+            if (!Array.isArray(clone.content.media)) clone.content.media = []
+            const imgIndex = clone.content.media.findIndex((m) => m && m.type === 'image')
+            const nextItem = {
+              ...(imgIndex >= 0 ? clone.content.media[imgIndex] : {}),
+              type: 'image',
+              url,
+            }
+            if (imgIndex >= 0) clone.content.media[imgIndex] = nextItem
+            else clone.content.media.push(nextItem)
           }
-          if (imgIndex >= 0) clone.content.media[imgIndex] = nextItem
-          else clone.content.media.push(nextItem)
           return clone
         }),
       )
@@ -309,13 +327,31 @@ function EditStoryView({
 
   const insertEventAt = (insertIndex) => {
     setEvents((prev) => {
+      // Find special events
+      const openingIndex = prev.findIndex((e) => e?.eventType === 'Opening')
+      const closingIndex = prev.findIndex((e) => e?.eventType === 'Closing')
+      
+      // Adjust insertIndex to ensure we don't insert before Opening or after Closing
+      let adjustedIndex = insertIndex
+      if (openingIndex >= 0 && adjustedIndex <= openingIndex) {
+        adjustedIndex = openingIndex
+      }
+      if (closingIndex >= 0 && adjustedIndex >= closingIndex) {
+        adjustedIndex = closingIndex - 1
+      }
+
       let nextEvents
       if (prev.length === 0) {
         nextEvents = [createEmptyEvent(null)]
       } else {
-        const previous = prev[insertIndex] || prev[prev.length - 1]
-        const previousEventId = previous?.eventId || null
-        const newEventId = generateNextEventId(prev)
+        const previous = prev[adjustedIndex] || prev[prev.length - 1]
+        // Skip special events when finding previous
+        let actualPrevious = previous
+        if (isSpecialEvent(previous) && adjustedIndex > 0) {
+          actualPrevious = prev[adjustedIndex - 1]
+        }
+        const previousEventId = actualPrevious && !isSpecialEvent(actualPrevious) ? actualPrevious.eventId : null
+        const newEventId = generateNextEventId(prev.filter((e) => !isSpecialEvent(e)))
         const newEvent = {
           ...createEmptyEvent(previousEventId),
           eventId: newEventId,
@@ -326,30 +362,36 @@ function EditStoryView({
         }
 
         nextEvents = [...prev]
-        nextEvents.splice(insertIndex + 1, 0, newEvent)
+        nextEvents.splice(adjustedIndex + 1, 0, newEvent)
 
-        const nextIndex = insertIndex + 2
+        const nextIndex = adjustedIndex + 2
         if (nextIndex < nextEvents.length) {
           const nextEvent = { ...nextEvents[nextIndex] }
-          nextEvent.transition = {
-            ...(nextEvent.transition || {}),
-            sourceEventId: newEventId,
+          if (!isSpecialEvent(nextEvent)) {
+            nextEvent.transition = {
+              ...(nextEvent.transition || {}),
+              sourceEventId: newEventId,
+            }
+            nextEvents[nextIndex] = nextEvent
           }
-          nextEvents[nextIndex] = nextEvent
         }
 
-        const newIndex = insertIndex + 1
+        const newIndex = adjustedIndex + 1
         const inserted = { ...nextEvents[newIndex] }
-        inserted.transition = {
-          ...(inserted.transition || {}),
-          sourceEventId: previousEventId,
+        if (!isSpecialEvent(inserted)) {
+          inserted.transition = {
+            ...(inserted.transition || {}),
+            sourceEventId: previousEventId,
+          }
+          nextEvents[newIndex] = inserted
         }
-        nextEvents[newIndex] = inserted
       }
+      
+      const ensured = ensureSpecialEvents(nextEvents)
       if (onEventsChange) {
-        onEventsChange(nextEvents)
+        onEventsChange(ensured)
       }
-      return nextEvents
+      return ensured
     })
     setIsDirty(true)
   }
@@ -380,6 +422,25 @@ function EditStoryView({
       return list
     }
 
+    // Prevent moving special events
+    const fromEvent = list[fromIndex]
+    const toEvent = list[toIndex]
+    if (isSpecialEvent(fromEvent) || isSpecialEvent(toEvent)) {
+      return list
+    }
+
+    // Find indices of special events
+    const openingIndex = list.findIndex((e) => e?.eventType === 'Opening')
+    const closingIndex = list.findIndex((e) => e?.eventType === 'Closing')
+
+    // Prevent moving regular events to positions that would place them before Opening or after Closing
+    if (openingIndex >= 0 && toIndex <= openingIndex) {
+      return list
+    }
+    if (closingIndex >= 0 && toIndex >= closingIndex) {
+      return list
+    }
+
     const updated = [...list]
     const [moved] = updated.splice(fromIndex, 1)
     updated.splice(toIndex, 0, moved)
@@ -397,6 +458,11 @@ function EditStoryView({
   }
 
   const handleDragStart = (index, event) => {
+    // Prevent dragging special events
+    if (isSpecialEvent(events[index])) {
+      event.preventDefault()
+      return
+    }
     setDraggingIndex(index)
     setDragOverTarget(index)
     if (event.dataTransfer) {
@@ -490,6 +556,12 @@ function EditStoryView({
   }
 
   const deleteEventAt = (index) => {
+    const event = events[index]
+    if (isSpecialEvent(event)) {
+      window.alert('Opening and Closing events cannot be deleted.')
+      return
+    }
+    
     if (!window.confirm('Are you sure you want to delete this event?')) return
 
     setEvents((prev) => {
@@ -508,10 +580,11 @@ function EditStoryView({
         next[index] = updatedNext
       }
 
+      const ensured = ensureSpecialEvents(next)
       if (onEventsChange) {
-        onEventsChange(next)
+        onEventsChange(ensured)
       }
-      return next
+      return ensured
     })
 
     setExpandedIndexes((prev) => {
@@ -537,11 +610,12 @@ function EditStoryView({
     if (!Array.isArray(events) || !storyId) return
     try {
       setSaveStatus('saving')
-      await saveEvents(storyId, events)
+      const ensuredEvents = ensureSpecialEvents(events)
+      await saveEvents(storyId, ensuredEvents)
       setSaveStatus('saved')
       setIsDirty(false)
       if (onEventsChange) {
-        onEventsChange(events)
+        onEventsChange(ensuredEvents)
       }
       setTimeout(() => setSaveStatus('idle'), 1500)
     } catch (err) {
@@ -619,17 +693,20 @@ function EditStoryView({
         )}
 
         {!loading &&
-          events.map((event, index) => (
+          events.map((event, index) => {
+            const isSpecial = isSpecialEvent(event)
+            return (
             <div
               key={event.eventId || index}
               className={[
                 'events-list-item',
                 draggingIndex != null && dragOverTarget === index ? 'is-drop-target' : '',
                 draggingIndex === index ? 'is-being-dragged' : '',
+                isSpecial ? 'events-list-item-special' : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
-              draggable
+              draggable={!isSpecial}
               onDragStart={(e) => handleDragStart(index, e)}
               onDragOver={(e) => handleDragOverItem(index, e)}
               onDrop={(e) => handleDropOnItem(index, e)}
@@ -652,19 +729,21 @@ function EditStoryView({
                 onSearchLocation={searchLocationForEvent}
               />
 
-              <button
-                type="button"
-                className="between-plus-btn"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  e.preventDefault()
-                  insertEventAt(index)
-                }}
-              >
-                + Add event here
-              </button>
+              {!isSpecialEvent(event) && (
+                <button
+                  type="button"
+                  className="between-plus-btn"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    e.preventDefault()
+                    insertEventAt(index)
+                  }}
+                >
+                  + Add event here
+                </button>
+              )}
             </div>
-          ))}
+          )})}
 
         {!loading && events.length === 0 && (
           <div className="empty-state">

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import EventTimeline from '../components/EventTimeline'
 import { useStoryData } from '../hooks/useStoryData.js'
@@ -13,6 +13,7 @@ function ViewStoryView({ onEventsChange, onActiveEventIndexChange, onMapCameraCh
   const navigate = useNavigate()
   const { storyId } = useParams()
   const [currentEventIndex, setCurrentEventIndex] = useState(0)
+  const openingToFirstZoomTimeoutRef = useRef(null)
 
   // Use custom hooks
   const { loading, story, events } = useStoryData(storyId)
@@ -41,8 +42,10 @@ function ViewStoryView({ onEventsChange, onActiveEventIndexChange, onMapCameraCh
       onActiveEventIndexChange?.(nextActiveIndex)
 
       const first = events[0]
+      // If the first card is a real event with a location, center on it.
+      // If the first card is the Opening event (no location), MapView will auto-fit to all events.
       const coords = first?.location?.coordinates
-      if (coords?.lng != null && coords?.lat != null && onMapCameraChange) {
+      if (first?.eventType !== 'Opening' && coords?.lng != null && coords?.lat != null && onMapCameraChange) {
         const zoomRaw = first?.location?.mapView?.zoom
         const zoom = typeof zoomRaw === 'number' ? zoomRaw : 10
         onMapCameraChange({
@@ -66,6 +69,16 @@ function ViewStoryView({ onEventsChange, onActiveEventIndexChange, onMapCameraCh
       return prev
     })
   }, [events])
+
+  // Cleanup any pending Opening -> first event zoom step.
+  useEffect(() => {
+    return () => {
+      if (openingToFirstZoomTimeoutRef.current != null) {
+        clearTimeout(openingToFirstZoomTimeoutRef.current)
+        openingToFirstZoomTimeoutRef.current = null
+      }
+    }
+  }, [])
 
   const goToEventIndex = (nextIndex) => {
     if (!Array.isArray(events) || events.length === 0) return
@@ -95,6 +108,68 @@ function ViewStoryView({ onEventsChange, onActiveEventIndexChange, onMapCameraCh
   const eventText = eventTextRaw.trim()
   const canGoPrev = currentEventIndex > 0
   const canGoNext = Array.isArray(events) && currentEventIndex < events.length - 1
+
+  const goToNext = () => {
+    if (!canGoNext) return
+
+    // Special behavior: from Opening → jump to the first real event with coordinates and zoom in.
+    if (activeEvent?.eventType === 'Opening') {
+      const firstRealIndex = Array.isArray(events)
+        ? events.findIndex((ev) => {
+            if (!ev || ev.eventType === 'Opening' || ev.eventType === 'Closing') return false
+            const coords = ev?.location?.coordinates
+            return coords?.lng != null && coords?.lat != null
+          })
+        : -1
+
+      const targetIndex = firstRealIndex >= 0 ? firstRealIndex : currentEventIndex + 1
+      goToEventIndex(targetIndex)
+
+      const targetEvent = events[targetIndex]
+      const coords = targetEvent?.location?.coordinates
+      if (coords?.lng != null && coords?.lat != null && onMapCameraChange) {
+        // Cancel any previous pending zoom step.
+        if (openingToFirstZoomTimeoutRef.current != null) {
+          clearTimeout(openingToFirstZoomTimeoutRef.current)
+          openingToFirstZoomTimeoutRef.current = null
+        }
+
+        const zoomRaw = targetEvent?.location?.mapView?.zoom
+        const zoom = typeof zoomRaw === 'number' ? zoomRaw : 12
+
+        // Two-step animation:
+        // 1) Pan to the target (keep current zoom by omitting `zoom`)
+        // 2) Zoom in once panning finishes
+        const totalMs = 3600
+        const panMs = 2200
+        const zoomMs = Math.max(300, totalMs - panMs)
+
+        onMapCameraChange({
+          center: [coords.lng, coords.lat],
+          pitch: 0,
+          bearing: 0,
+          durationMs: panMs,
+        })
+
+        openingToFirstZoomTimeoutRef.current = setTimeout(() => {
+          try {
+            onMapCameraChange({
+              center: [coords.lng, coords.lat],
+              zoom,
+              pitch: 0,
+              bearing: 0,
+              durationMs: zoomMs,
+            })
+          } finally {
+            openingToFirstZoomTimeoutRef.current = null
+          }
+        }, panMs + 50)
+      }
+      return
+    }
+
+    goToEventIndex(currentEventIndex + 1)
+  }
 
   // Determine what content to show based on card state
   const showDate = cardDrag.cardState === 'open'
@@ -249,7 +324,7 @@ function ViewStoryView({ onEventsChange, onActiveEventIndexChange, onMapCameraCh
                 <button
                   type="button"
                   className="view-story-nav-btn next"
-                  onClick={() => goToEventIndex(currentEventIndex + 1)}
+                  onClick={goToNext}
                   disabled={!canGoNext}
                 >
                   <span>Next Event</span>
@@ -276,7 +351,7 @@ function ViewStoryView({ onEventsChange, onActiveEventIndexChange, onMapCameraCh
             <button
               type="button"
               className="view-story-nav-btn next"
-              onClick={() => goToEventIndex(currentEventIndex + 1)}
+              onClick={goToNext}
               disabled={!canGoNext}
             >
               <span>Next Event</span>

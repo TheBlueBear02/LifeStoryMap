@@ -172,15 +172,47 @@ export default defineConfig({
                   // Ensure events directory exists
                   await fs.promises.mkdir(path.dirname(eventsFilePath), { recursive: true })
                   
-                  // Create empty events file
-                  await fs.promises.writeFile(eventsFilePath, '[]', 'utf8')
+                  // Create initial events with Opening and Closing events
+                  const initialEvents = [
+                    {
+                      eventId: 'OPENING',
+                      eventType: 'Opening',
+                      title: 'Opening',
+                      content: {
+                        textHtml: '',
+                        media: [],
+                        imageComparison: {
+                          enabled: false,
+                          caption: '',
+                          urlOld: '',
+                          urlNew: '',
+                        },
+                      },
+                    },
+                    {
+                      eventId: 'CLOSING',
+                      eventType: 'Closing',
+                      title: 'Closing',
+                      content: {
+                        textHtml: '',
+                        media: [],
+                        imageComparison: {
+                          enabled: false,
+                          caption: '',
+                          urlOld: '',
+                          urlNew: '',
+                        },
+                      },
+                    },
+                  ]
+                  await fs.promises.writeFile(eventsFilePath, JSON.stringify(initialEvents, null, 2), 'utf8')
 
                   const newStory = {
                     id: newId,
                     name: name.trim(),
                     eventsFilePath: `events/${eventsFileName}`,
                     dateCreated: new Date().toISOString(),
-                    eventCount: 0,
+                    eventCount: 2, // Opening and Closing events
                     published: false,
                   }
 

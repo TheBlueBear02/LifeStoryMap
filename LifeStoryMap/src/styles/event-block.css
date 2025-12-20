@@ -97,6 +97,25 @@
   color-scheme: light;
 }
 
+.event-block-special {
+  border: 2px solid #fbbf24;
+  background: linear-gradient(to bottom, #fffbeb, #ffffff);
+}
+
+.events-list-item-special {
+  cursor: default;
+}
+
+.event-special-badge {
+  font-size: 0.75rem;
+  color: #92400e;
+  background: #fef3c7;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
 .event-block input[type='text'],
 .event-block textarea {
   font-family: Arial, sans-serif;

@@ -26,6 +26,8 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
   const latestEventPathGeoJsonRef = useRef({ type: 'FeatureCollection', features: [] }) // latest FeatureCollection for the path
   const isSyncingFromPropsRef = useRef(false) // Track if we're syncing from props to avoid feedback loop
   const transportMarkerRef = useRef(null) // Transport marker (airplane icon) that moves along the path
+  const lastEndpointAutoFitKeyRef = useRef(null)
+  const endpointAutoFitTimeoutRef = useRef(null)
   
   // Store callbacks in refs to avoid re-initializing the map when they change
   const onMapClickRef = useRef(onMapClick)
@@ -286,6 +288,10 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
 
     const center = camera.center || [0, 0]
     const zoom = typeof camera.zoom === 'number' ? camera.zoom : map.getZoom()
+    const durationMs =
+      typeof camera?.durationMs === 'number' && Number.isFinite(camera.durationMs)
+        ? camera.durationMs
+        : 800
     // Force flat view - always keep pitch at 0 and bearing at 0 for Google Maps-like appearance
     const pitch = 0
     const bearing = 0
@@ -304,12 +310,12 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
         zoom,
         pitch: 0, // Always keep flat
         bearing: 0, // Always keep north-up
-        duration: 800,
+        duration: durationMs,
       })
       // Reset flag after animation completes
       setTimeout(() => {
         isSyncingFromPropsRef.current = false
-      }, 850)
+      }, durationMs + 50)
     }
   }, [camera])
 
@@ -1325,6 +1331,68 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
       isSyncingFromPropsRef.current = false
     }, 850)
   }
+
+  // In view mode (showStaticPath=false), when the Opening or Closing event is active,
+  // auto-fit the map to show the whole story path from above.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return undefined
+
+    if (endpointAutoFitTimeoutRef.current != null) {
+      clearTimeout(endpointAutoFitTimeoutRef.current)
+      endpointAutoFitTimeoutRef.current = null
+    }
+
+    const idx = typeof activeEventIndex === 'number' ? activeEventIndex : null
+    const isOpeningActive = idx === 0 && events?.[0]?.eventType === 'Opening'
+    const isClosingActive =
+      typeof idx === 'number' &&
+      Array.isArray(events) &&
+      events.length > 0 &&
+      idx === events.length - 1 &&
+      events?.[idx]?.eventType === 'Closing'
+
+    const shouldAutoFit = !showStaticPath && (isOpeningActive || isClosingActive)
+    const key = shouldAutoFit
+      ? `${isOpeningActive ? 'opening' : 'closing'}:${idx}:${Array.isArray(events) ? events.length : 0}`
+      : null
+
+    if (key) {
+      if (lastEndpointAutoFitKeyRef.current !== key) {
+        lastEndpointAutoFitKeyRef.current = key
+        handleZoomOut()
+
+        // Sync outer state after fit completes (since we suppress moveend callbacks while syncing).
+        endpointAutoFitTimeoutRef.current = setTimeout(() => {
+          try {
+            const center = map.getCenter()
+            const zoom = map.getZoom()
+            if (onCameraChangeRef.current) {
+              onCameraChangeRef.current({
+                center: [center.lng, center.lat],
+                zoom,
+                pitch: 0,
+                bearing: 0,
+              })
+            }
+          } catch {
+            // ignore
+          } finally {
+            endpointAutoFitTimeoutRef.current = null
+          }
+        }, 900)
+      }
+    } else {
+      lastEndpointAutoFitKeyRef.current = null
+    }
+
+    return () => {
+      if (endpointAutoFitTimeoutRef.current != null) {
+        clearTimeout(endpointAutoFitTimeoutRef.current)
+        endpointAutoFitTimeoutRef.current = null
+      }
+    }
+  }, [activeEventIndex, events, showStaticPath])
 
   const token = import.meta.env.VITE_MAPBOX_TOKEN
   if (!token) {

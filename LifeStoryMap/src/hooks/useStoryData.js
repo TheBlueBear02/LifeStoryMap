@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getStory } from '../services/storyService.js'
 import { getEvents } from '../services/eventService.js'
+import { ensureSpecialEvents } from '../utils/events.js'
 
 /**
  * Hook for fetching story and events data
@@ -34,7 +35,7 @@ export function useStoryData(storyId) {
 
         if (cancelled) return
 
-        const nextEvents = Array.isArray(eventsData) ? eventsData : []
+        const nextEvents = Array.isArray(eventsData) ? ensureSpecialEvents(eventsData) : ensureSpecialEvents([])
         setStory(storyData)
         setEvents(nextEvents)
       } catch (err) {
