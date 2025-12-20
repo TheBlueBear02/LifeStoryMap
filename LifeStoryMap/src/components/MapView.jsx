@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
+import walkingIcon from '../assets/icons/walking.svg'
 
 /**
  * Full-screen Mapbox map that sits behind the app sidebar.
@@ -957,15 +958,21 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
       // Create a custom HTML element for the transport icon in a circle
       const el = document.createElement('div')
       el.className = 'transport-marker'
+      
+      // Use walking.svg for walking transport type, otherwise use inline SVG
+      const iconContent = transportType === 'walking' 
+        ? `<img src="${walkingIcon}" class="transport-marker-icon" alt="Walking" />`
+        : `<svg class="transport-marker-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            ${getTransportIcon(transportType)}
+          </svg>`
+      
       el.innerHTML = `
         <div class="transport-marker-circle">
-          <svg class="transport-marker-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            ${getTransportIcon(transportType)}
-          </svg>
+          ${iconContent}
         </div>
       `
-      el.style.width = '40px'
-      el.style.height = '40px'
+      el.style.width = '30px'
+      el.style.height = '30px'
       el.style.cursor = 'default'
       el.style.pointerEvents = 'none'
       el.style.display = 'none' // Initially hidden - will show during movement phase

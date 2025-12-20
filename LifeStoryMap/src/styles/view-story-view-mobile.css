@@ -1,5 +1,14 @@
 /* Mobile-specific styles for ViewStoryView (max-width: 768px) */
 
+/* Timeline: visible on desktop, fixed positioning on mobile */
+.view-story-timeline-fixed {
+  display: block;
+}
+
+.view-story-card-mobile {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .view-story-view {
     min-height: 100vh;
@@ -39,6 +48,7 @@
 
   /* Fixed timeline at top */
   .view-story-timeline-fixed {
+    display: block;
     position: fixed;
     top: 10px;
     left: 0;
@@ -52,6 +62,7 @@
 
   /* Mobile event card overlay */
   .view-story-card-mobile {
+    display: block;
     position: fixed;
     bottom: 0;
     left: 0;
@@ -116,7 +127,7 @@
 
   /* Open state - maximum height */
   .view-story-card-mobile-open {
-    height: 90%;
+    height: 88%;
     max-height: 90vh;
     min-height: 400px;
     overflow-y: auto;

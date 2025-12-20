@@ -288,20 +288,22 @@ function EventBlock({
                   { value: 'train', label: 'Train', icon: '🚂' },
                   { value: 'airplane', label: 'Airplane', icon: '✈️' },
                   { value: 'horse', label: 'Horse', icon: '🐴' },
-                ].map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    className={`transport-type-option ${
-                      (event.transition?.transportType || 'airplane') === option.value ? 'active' : ''
-                    }`}
-                    onClick={() => handleInputChange(['transition', 'transportType'], option.value)}
-                    title={option.label}
-                  >
-                    <span className="transport-type-icon">{option.icon}</span>
-                    <span className="transport-type-label">{option.label}</span>
-                  </button>
-                ))}
+                ].map((option) => {
+                  const currentTransportType = event.transition?.transportType || 'airplane'
+                  const isActive = currentTransportType === option.value
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`transport-type-option${isActive ? ' active' : ''}`}
+                      onClick={() => handleInputChange(['transition', 'transportType'], option.value)}
+                      title={option.label}
+                    >
+                      <span className="transport-type-icon">{option.icon}</span>
+                      <span className="transport-type-label">{option.label}</span>
+                    </button>
+                  )
+                })}
               </div>
             </label>
           </div>

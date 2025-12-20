@@ -396,8 +396,8 @@
   min-width: 70px;
 }
 
-.transport-type-option:hover {
-  border-color: #2563eb;
+.transport-type-option:hover:not(.active) {
+  border-color: #93c5fd;
   background: #eff6ff;
   transform: translateY(-1px);
 }
@@ -406,6 +406,13 @@
   border-color: #2563eb;
   background: #dbeafe;
   box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+.transport-type-option.active:hover {
+  border-color: #2563eb;
+  background: #dbeafe;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+  transform: none;
 }
 
 .transport-type-icon {

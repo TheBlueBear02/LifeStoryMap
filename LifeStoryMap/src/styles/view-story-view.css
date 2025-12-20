@@ -23,6 +23,24 @@
   padding-bottom: 1rem;
 }
 
+/* Timeline for desktop - normal flow positioning */
+@media (min-width: 769px) {
+  .view-story-timeline-fixed {
+    position: static;
+    width: 100%;
+    max-width: 440px;
+    margin: 0 auto 0rem;
+    padding: 0 1rem;
+    box-sizing: border-box;
+    top: auto;
+    left: auto;
+    right: auto;
+    z-index: auto;
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
 .view-story-header {
   width: 100%;
   max-width: 440px;
