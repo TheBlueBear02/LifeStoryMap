@@ -1,0 +1,239 @@
+[
+  {
+    "eventId": "OPENING",
+    "eventType": "Opening",
+    "title": "Startup Odyssey",
+    "content": {
+      "textHtml": "Example story: a career journey across hubs and conferences. Final stop is Tel Aviv, Israel.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    }
+  },
+  {
+    "eventId": "E001",
+    "eventType": "Event",
+    "title": "First pitch night",
+    "timeline": {
+      "dateStart": "2019-01-25",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "Berlin, Germany",
+      "coordinates": {
+        "lat": 52.52,
+        "lng": 13.405
+      },
+      "mapView": {
+        "zoom": 11.8,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "content": {
+      "textHtml": "A five-minute pitch, a million nerves, and the first real feedback that mattered.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    },
+    "transition": {
+      "transportType": "airplane"
+    }
+  },
+  {
+    "eventId": "E002",
+    "eventType": "Event",
+    "title": "Prototype sprint",
+    "timeline": {
+      "dateStart": "2019-03-06",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "London, United Kingdom",
+      "coordinates": {
+        "lat": 51.5072,
+        "lng": -0.1276
+      },
+      "mapView": {
+        "zoom": 11.7,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "content": {
+      "textHtml": "Three days, too much coffee, and a demo that finally looked like a product.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    },
+    "transition": {
+      "transportType": "airplane"
+    }
+  },
+  {
+    "eventId": "E003",
+    "eventType": "Event",
+    "title": "The first customer call",
+    "timeline": {
+      "dateStart": "2019-04-18",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "New York, NY, USA",
+      "coordinates": {
+        "lat": 40.7128,
+        "lng": -74.006
+      },
+      "mapView": {
+        "zoom": 11.4,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "content": {
+      "textHtml": "A polite ‘no’ that taught us more than any ‘yes’ ever could.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    },
+    "transition": {
+      "transportType": "airplane"
+    }
+  },
+  {
+    "eventId": "E004",
+    "eventType": "Event",
+    "title": "Conference hallway deal",
+    "timeline": {
+      "dateStart": "2019-06-02",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "San Francisco, CA, USA",
+      "coordinates": {
+        "lat": 37.7749,
+        "lng": -122.4194
+      },
+      "mapView": {
+        "zoom": 11.4,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "content": {
+      "textHtml": "Not a boardroom, not a contract—just a handshake and momentum.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    },
+    "transition": {
+      "transportType": "airplane"
+    }
+  },
+  {
+    "eventId": "E005",
+    "eventType": "Event",
+    "title": "Product reset",
+    "timeline": {
+      "dateStart": "2019-08-19",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "South Africa",
+      "coordinates": {
+        "lat": -28.378272,
+        "lng": 23.913711
+      },
+      "mapView": {
+        "zoom": 12,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "content": {
+      "textHtml": "We rewrote the roadmap on a whiteboard and stopped building the wrong thing.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    },
+    "transition": {
+      "transportType": "airplane"
+    }
+  },
+  {
+    "eventId": "E006",
+    "eventType": "Event",
+    "title": "Back to where it began",
+    "timeline": {
+      "dateStart": "2019-10-05",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "Tel Aviv-Yafo, Tel Aviv District, Israel",
+      "coordinates": {
+        "lat": 32.08532,
+        "lng": 34.7819
+      },
+      "mapView": {
+        "zoom": 12,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "content": {
+      "textHtml": "A quiet desk, a clear plan, and the team finally aligned.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    }
+  },
+  {
+    "eventId": "CLOSING",
+    "eventType": "Closing",
+    "title": "Closing",
+    "content": {
+      "textHtml": "",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    }
+  }
+]

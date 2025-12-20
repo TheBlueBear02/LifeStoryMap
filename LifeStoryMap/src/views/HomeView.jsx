@@ -2,10 +2,12 @@ import { useEffect, useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import logoImage from '../assets/Logos/logo no name no bg.png'
 import { getStories, createStory, updateStory, deleteStory } from '../services/storyService.js'
-import { ROUTES } from '../constants/paths.js'
+import { ROUTES, API_PATHS } from '../constants/paths.js'
+import { get } from '../services/api.js'
 
 function HomeView() {
   const [stories, setStories] = useState([])
+  const [exampleStories, setExampleStories] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedSlot, setSelectedSlot] = useState(null)
   const [newStoryName, setNewStoryName] = useState('')
@@ -18,11 +20,16 @@ function HomeView() {
   useEffect(() => {
     const loadStories = async () => {
       try {
-        const data = await getStories()
+        const [data, examples] = await Promise.all([
+          getStories(),
+          get(API_PATHS.EXAMPLE_STORIES).catch(() => []),
+        ])
         setStories(data)
+        setExampleStories(Array.isArray(examples) ? examples : [])
       } catch (err) {
         console.error(err)
         setStories([])
+        setExampleStories([])
       } finally {
         setLoading(false)
       }
@@ -287,6 +294,42 @@ function HomeView() {
 
             {stories.length >= MAX_STORIES && (
               <p className="max-stories-message">Maximum of {MAX_STORIES} stories reached</p>
+            )}
+
+            {/* Bottom "folder" section */}
+            {Array.isArray(exampleStories) && exampleStories.length > 0 && (
+              <div className="home-bottom-section">
+                <details className="examples-folder">
+                  <summary className="examples-folder-summary">
+                    <span className="examples-folder-title">Example Stories</span>
+                    <span className="examples-folder-count">{exampleStories.length}</span>
+                  </summary>
+                  <div className="examples-folder-content stories-list">
+                    {exampleStories.map((story) => (
+                      <div key={story.id} className="story-card">
+                        <div className="story-card-header">
+                          <div className="story-name-container">
+                            <h3 className="story-name">{story.name}</h3>
+                          </div>
+                          <div className="story-header-actions">
+                            <div className="story-badge">
+                              <span className="badge draft">Example</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="story-card-actions">
+                          <Link to={ROUTES.VIEW_STORY(story.id)} className="primary-btn story-view-btn">
+                            View
+                          </Link>
+                          <Link to={ROUTES.EDIT_STORY(story.id)} className="secondary-btn story-edit-btn">
+                            Edit Story
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              </div>
             )}
           </>
         )}

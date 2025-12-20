@@ -1,0 +1,240 @@
+[
+  {
+    "eventId": "OPENING",
+    "eventType": "Opening",
+    "title": "Family Roots",
+    "content": {
+      "textHtml": "Example story: tracing family memories across cities. Final stop is always Tel Aviv, Israel.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    }
+  },
+  {
+    "eventId": "E001",
+    "eventType": "Event",
+    "title": "Old letters, new questions",
+    "timeline": {
+      "dateStart": "2001-01-14",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "Moscow, Russia",
+      "coordinates": {
+        "lat": 55.750446,
+        "lng": 37.617494
+      },
+      "mapView": {
+        "zoom": 12,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "content": {
+      "textHtml": "A stack of letters turned into a map of places we’d never talked about.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    },
+    "transition": {
+      "transportType": "train"
+    }
+  },
+  {
+    "eventId": "E003",
+    "eventType": "Event",
+    "title": "A neighborhood walk",
+    "timeline": {
+      "dateStart": "2001-02-21",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "Budapest, Hungary",
+      "coordinates": {
+        "lat": 47.4979,
+        "lng": 19.0402
+      },
+      "mapView": {
+        "zoom": 11.7,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "content": {
+      "textHtml": "Street names, building facades, and a sense of déjà vu you can’t explain.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    },
+    "transition": {
+      "transportType": "train",
+      "sourceEventId": "E001"
+    }
+  },
+  {
+    "eventId": "E004",
+    "eventType": "Event",
+    "title": "A name in a registry",
+    "timeline": {
+      "dateStart": "2001-03-10",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "Pairs, 16420 Saint-Christophe, France",
+      "coordinates": {
+        "lat": 45.97751,
+        "lng": 0.836954
+      },
+      "mapView": {
+        "zoom": 12,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "content": {
+      "textHtml": "A single record confirmed a story that had been “maybe” for decades.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    },
+    "transition": {
+      "transportType": "airplane"
+    }
+  },
+  {
+    "eventId": "E005",
+    "eventType": "Event",
+    "title": "Cousins we never met",
+    "timeline": {
+      "dateStart": "2001-03-29",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "Montreal, QC, Canada",
+      "coordinates": {
+        "lat": 45.5017,
+        "lng": -73.5673
+      },
+      "mapView": {
+        "zoom": 11.3,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "content": {
+      "textHtml": "Tea, photos, and a new branch of the family tree drawn on napkins.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    },
+    "transition": {
+      "transportType": "airplane"
+    }
+  },
+  {
+    "eventId": "E006",
+    "eventType": "Event",
+    "title": "A box of photos",
+    "timeline": {
+      "dateStart": "2001-04-15",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "Buenos Aires, Argentina",
+      "coordinates": {
+        "lat": -34.6037,
+        "lng": -58.3816
+      },
+      "mapView": {
+        "zoom": 11.2,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "content": {
+      "textHtml": "A shoebox revealed faces, places, and a timeline that finally made sense.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    },
+    "transition": {
+      "transportType": "airplane"
+    }
+  },
+  {
+    "eventId": "E007",
+    "eventType": "Event",
+    "title": "Home base, new meaning",
+    "timeline": {
+      "dateStart": "2001-05-01",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "Tel Aviv-Yafo, Tel Aviv District, Israel",
+      "coordinates": {
+        "lat": 32.08532,
+        "lng": 34.7819
+      },
+      "mapView": {
+        "zoom": 12,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "content": {
+      "textHtml": "Coming back, the “ordinary” streets felt like the last missing piece.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    }
+  },
+  {
+    "eventId": "CLOSING",
+    "eventType": "Closing",
+    "title": "Closing",
+    "content": {
+      "textHtml": "",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    }
+  }
+]

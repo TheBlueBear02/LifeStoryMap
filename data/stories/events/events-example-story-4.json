@@ -1,0 +1,169 @@
+[
+  {
+    "eventId": "OPENING",
+    "eventType": "Opening",
+    "title": "Food Trail",
+    "content": {
+      "textHtml": "Example story: a tasting journey. Final stop is always Tel Aviv, Israel.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    }
+  },
+  {
+    "eventId": "E001",
+    "eventType": "Event",
+    "title": "Street noodles",
+    "timeline": {
+      "dateStart": "2022-09-03",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "Kazakhstan",
+      "coordinates": {
+        "lat": 48.160088,
+        "lng": 67.301774
+      },
+      "mapView": {
+        "zoom": 12,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "content": {
+      "textHtml": "Spicy, sweet, smoky—one bowl and the trip had a theme.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    },
+    "transition": {
+      "transportType": "airplane"
+    }
+  },
+  {
+    "eventId": "E002",
+    "eventType": "Event",
+    "title": "Market morning",
+    "timeline": {
+      "dateStart": "2022-09-19",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "Istanbul, Türkiye",
+      "coordinates": {
+        "lat": 41.0082,
+        "lng": 28.9784
+      },
+      "mapView": {
+        "zoom": 11.7,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "content": {
+      "textHtml": "Spice stalls and tiny cups of tea—everything smelled like history.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    },
+    "transition": {
+      "transportType": "airplane"
+    }
+  },
+  {
+    "eventId": "E003",
+    "eventType": "Event",
+    "title": "Late-night dessert",
+    "timeline": {
+      "dateStart": "2022-10-02",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "Rome, Italy",
+      "coordinates": {
+        "lat": 41.9028,
+        "lng": 12.4964
+      },
+      "mapView": {
+        "zoom": 11.6,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "content": {
+      "textHtml": "Gelato after midnight—simple, perfect, unforgettable.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    },
+    "transition": {
+      "transportType": "airplane"
+    }
+  },
+  {
+    "eventId": "E004",
+    "eventType": "Event",
+    "title": "Home flavors, remixed",
+    "timeline": {
+      "dateStart": "2022-10-18",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "Tel Aviv-Yafo, Tel Aviv District, Israel",
+      "coordinates": {
+        "lat": 32.08532,
+        "lng": 34.7819
+      },
+      "mapView": {
+        "zoom": 12,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "content": {
+      "textHtml": "Back in Tel Aviv, every dish tasted like a callback to the trip.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    }
+  },
+  {
+    "eventId": "CLOSING",
+    "eventType": "Closing",
+    "title": "Closing",
+    "content": {
+      "textHtml": "",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    }
+  }
+]

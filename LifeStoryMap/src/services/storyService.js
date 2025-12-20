@@ -5,6 +5,8 @@ import { API_PATHS } from '../constants/paths.js'
  * Story service for CRUD operations
  */
 
+const isExampleStoryId = (storyId) => typeof storyId === 'string' && storyId.startsWith('example-story-')
+
 /**
  * Fetches all stories
  * @returns {Promise<Array>} - Array of story objects
@@ -20,7 +22,7 @@ export async function getStories() {
  * @returns {Promise<Object>} - Story object
  */
 export async function getStory(storyId) {
-  return get(API_PATHS.STORY(storyId))
+  return get(isExampleStoryId(storyId) ? API_PATHS.EXAMPLE_STORY(storyId) : API_PATHS.STORY(storyId))
 }
 
 /**
@@ -39,7 +41,7 @@ export async function createStory(name) {
  * @returns {Promise<Object>} - Updated story object
  */
 export async function updateStory(storyId, updates) {
-  return put(API_PATHS.STORY(storyId), updates)
+  return put(isExampleStoryId(storyId) ? API_PATHS.EXAMPLE_STORY(storyId) : API_PATHS.STORY(storyId), updates)
 }
 
 /**
@@ -48,6 +50,6 @@ export async function updateStory(storyId, updates) {
  * @returns {Promise<void>}
  */
 export async function deleteStory(storyId) {
-  return del(API_PATHS.STORY(storyId))
+  return del(isExampleStoryId(storyId) ? API_PATHS.EXAMPLE_STORY(storyId) : API_PATHS.STORY(storyId))
 }
 

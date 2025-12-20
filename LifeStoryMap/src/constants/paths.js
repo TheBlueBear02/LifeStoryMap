@@ -11,6 +11,9 @@ export const API_PATHS = {
   STORIES: '/api/stories',
   STORY: (storyId) => `/api/stories/${storyId}`,
   STORY_EVENTS: (storyId) => `/api/stories/${storyId}/events`,
+  EXAMPLE_STORIES: '/api/example-stories',
+  EXAMPLE_STORY: (storyId) => `/api/example-stories/${storyId}`,
+  EXAMPLE_STORY_EVENTS: (storyId) => `/api/example-stories/${storyId}/events`,
   UPLOAD_IMAGE: '/api/upload-image',
 }
 

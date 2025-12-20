@@ -1,0 +1,207 @@
+[
+  {
+    "eventId": "OPENING",
+    "eventType": "Opening",
+    "title": "Backpacker Year",
+    "content": {
+      "textHtml": "A sample story with varied locations. The last event always ends in Tel Aviv, Israel.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    }
+  },
+  {
+    "eventId": "E001",
+    "eventType": "Event",
+    "title": "First solo flight",
+    "timeline": {
+      "dateStart": "2016-03-12",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "Lisbon, Portugal",
+      "coordinates": {
+        "lat": 38.7223,
+        "lng": -9.1393
+      },
+      "mapView": {
+        "zoom": 11.5,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "content": {
+      "textHtml": "Landing jitters, then instant calm. The city felt like a warm welcome.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    },
+    "transition": {
+      "transportType": "train"
+    }
+  },
+  {
+    "eventId": "E002",
+    "eventType": "Event",
+    "title": "Night bus lesson",
+    "timeline": {
+      "dateStart": "2016-03-19",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "Madrid, Spain",
+      "coordinates": {
+        "lat": 40.4168,
+        "lng": -3.7038
+      },
+      "mapView": {
+        "zoom": 11.2,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "content": {
+      "textHtml": "Missed a stop, found new friends, learned to laugh at the chaos.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    },
+    "transition": {
+      "transportType": "train"
+    }
+  },
+  {
+    "eventId": "E003",
+    "eventType": "Event",
+    "title": "A view worth the climb",
+    "timeline": {
+      "dateStart": "2016-04-02",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "Interlaken, Switzerland",
+      "coordinates": {
+        "lat": 46.6863,
+        "lng": 7.8632
+      },
+      "mapView": {
+        "zoom": 12.2,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/outdoors-v12"
+      }
+    },
+    "content": {
+      "textHtml": "Cold air, quiet trails, and the kind of silence that resets your brain.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    },
+    "transition": {
+      "transportType": "train"
+    }
+  },
+  {
+    "eventId": "E004",
+    "eventType": "Event",
+    "title": "The museum afternoon",
+    "timeline": {
+      "dateStart": "2016-04-11",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "Vienna, Austria",
+      "coordinates": {
+        "lat": 48.2082,
+        "lng": 16.3738
+      },
+      "mapView": {
+        "zoom": 11.6,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "content": {
+      "textHtml": "A slow day: art, coffee, and a notebook full of ideas.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    },
+    "transition": {
+      "transportType": "airplane"
+    }
+  },
+  {
+    "eventId": "E006",
+    "eventType": "Event",
+    "title": "Homecoming",
+    "timeline": {
+      "dateStart": "2016-05-10",
+      "dateEnd": ""
+    },
+    "location": {
+      "name": "Tel Aviv-Yafo, Tel Aviv District, Israel",
+      "coordinates": {
+        "lat": 32.08532,
+        "lng": 34.7819
+      },
+      "mapView": {
+        "zoom": 12,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "content": {
+      "textHtml": "Back to familiar streets—only now, everything feels a little wider.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    },
+    "transition": {
+      "sourceEventId": "E004"
+    }
+  },
+  {
+    "eventId": "CLOSING",
+    "eventType": "Closing",
+    "title": "Closing",
+    "content": {
+      "textHtml": "",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    }
+  }
+]

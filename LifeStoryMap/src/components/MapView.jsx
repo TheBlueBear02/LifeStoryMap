@@ -15,8 +15,9 @@ import walkingIcon from '../assets/icons/walking.svg'
  * - activeEventIndex: Index of the currently expanded/active event
  * - showStaticPath: whether to show the static path between all events
  * - routeKey: string that changes when the route/layout changes (used to force resize)
+ * - homeOverlay: optional { key, points: FeatureCollection, lines: FeatureCollection } for homepage multi-story display
  */
-function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = [], activeEventIndex = null, showStaticPath = true, routeKey }) {
+function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = [], activeEventIndex = null, showStaticPath = true, routeKey, homeOverlay = null }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const markerRef = useRef(null)
@@ -24,10 +25,12 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
   const prevActiveEventIndexRef = useRef(activeEventIndex)
   const transitionAnimationRef = useRef(null) // Stores current requestAnimationFrame id
   const latestEventPathGeoJsonRef = useRef({ type: 'FeatureCollection', features: [] }) // latest FeatureCollection for the path
+  const latestHomeOverlayRef = useRef({ key: null, points: { type: 'FeatureCollection', features: [] }, lines: { type: 'FeatureCollection', features: [] } })
   const isSyncingFromPropsRef = useRef(false) // Track if we're syncing from props to avoid feedback loop
   const transportMarkerRef = useRef(null) // Transport marker (airplane icon) that moves along the path
   const lastEndpointAutoFitKeyRef = useRef(null)
   const endpointAutoFitTimeoutRef = useRef(null)
+  const lastHomeFitKeyRef = useRef(null)
   
   // Store callbacks in refs to avoid re-initializing the map when they change
   const onMapClickRef = useRef(onMapClick)
@@ -177,6 +180,77 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
       map.once('style.load', setupEventPath)
     }
 
+    // Home overlay (multi-story lines + points) for homepage.
+    const setupHomeOverlay = () => {
+      const linesSourceId = 'home-story-lines'
+      const pointsSourceId = 'home-story-points'
+
+      if (!map.getSource(linesSourceId)) {
+        map.addSource(linesSourceId, {
+          type: 'geojson',
+          data: latestHomeOverlayRef.current?.lines || { type: 'FeatureCollection', features: [] },
+        })
+      }
+      if (!map.getSource(pointsSourceId)) {
+        map.addSource(pointsSourceId, {
+          type: 'geojson',
+          data: latestHomeOverlayRef.current?.points || { type: 'FeatureCollection', features: [] },
+        })
+      }
+
+      if (!map.getLayer('home-story-lines-layer')) {
+        map.addLayer({
+          id: 'home-story-lines-layer',
+          type: 'line',
+          source: linesSourceId,
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round',
+          },
+          paint: {
+            'line-color': ['coalesce', ['get', 'color'], '#2563eb'],
+            'line-width': 5,
+            'line-opacity': 0.85,
+          },
+        })
+      }
+
+      // Outline layer for better contrast on busy basemaps
+      if (!map.getLayer('home-story-points-outline')) {
+        map.addLayer({
+          id: 'home-story-points-outline',
+          type: 'circle',
+          source: pointsSourceId,
+          paint: {
+            'circle-radius': 7,
+            'circle-color': '#ffffff',
+            'circle-opacity': 0.9,
+          },
+        })
+      }
+
+      if (!map.getLayer('home-story-points-layer')) {
+        map.addLayer({
+          id: 'home-story-points-layer',
+          type: 'circle',
+          source: pointsSourceId,
+          paint: {
+            'circle-radius': 5,
+            'circle-color': ['coalesce', ['get', 'color'], '#2563eb'],
+            'circle-opacity': 0.95,
+            'circle-stroke-color': 'rgba(17, 24, 39, 0.35)',
+            'circle-stroke-width': 1,
+          },
+        })
+      }
+    }
+
+    if (map.isStyleLoaded()) {
+      setupHomeOverlay()
+    } else {
+      map.once('style.load', setupHomeOverlay)
+    }
+
     const handleClick = (e) => {
       if (!onMapClickRef.current) return
       const lng = e.lngLat.lng
@@ -261,6 +335,23 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
       if (map.getSource('event-overview-path')) {
         map.removeSource('event-overview-path')
       }
+
+      // Clean up homepage overlay layers/sources
+      ;[
+        'home-story-lines-layer',
+        'home-story-points-layer',
+        'home-story-points-outline',
+      ].forEach((id) => {
+        if (map.getLayer(id)) {
+          map.removeLayer(id)
+        }
+      })
+      if (map.getSource('home-story-lines')) {
+        map.removeSource('home-story-lines')
+      }
+      if (map.getSource('home-story-points')) {
+        map.removeSource('home-story-points')
+      }
       // Clean up all event markers
       eventMarkersRef.current.forEach((markerData) => {
         markerData.marker.remove()
@@ -280,6 +371,144 @@ function MapView({ camera, markerLocation, onMapClick, onCameraChange, events = 
       markerRef.current = null
     }
   }, []) // Empty dependency array - map should only initialize once on mount
+
+  // Homepage overlay: update per-story paths + markers as GeoJSON layers (no Mapbox Markers).
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+
+    const emptyFC = { type: 'FeatureCollection', features: [] }
+
+    const next = homeOverlay && typeof homeOverlay === 'object'
+      ? {
+          key: typeof homeOverlay.key === 'string' ? homeOverlay.key : '',
+          points: homeOverlay.points || emptyFC,
+          lines: homeOverlay.lines || emptyFC,
+        }
+      : { key: null, points: emptyFC, lines: emptyFC }
+
+    latestHomeOverlayRef.current = next
+
+    const ensureSources = () => {
+      if (!map.getSource('home-story-lines')) {
+        map.addSource('home-story-lines', { type: 'geojson', data: next.lines })
+      }
+      if (!map.getSource('home-story-points')) {
+        map.addSource('home-story-points', { type: 'geojson', data: next.points })
+      }
+      if (!map.getLayer('home-story-lines-layer')) {
+        map.addLayer({
+          id: 'home-story-lines-layer',
+          type: 'line',
+          source: 'home-story-lines',
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: {
+            'line-color': ['coalesce', ['get', 'color'], '#2563eb'],
+            'line-width': 5,
+            'line-opacity': 0.85,
+          },
+        })
+      }
+      if (!map.getLayer('home-story-points-outline')) {
+        map.addLayer({
+          id: 'home-story-points-outline',
+          type: 'circle',
+          source: 'home-story-points',
+          paint: { 'circle-radius': 7, 'circle-color': '#ffffff', 'circle-opacity': 0.9 },
+        })
+      }
+      if (!map.getLayer('home-story-points-layer')) {
+        map.addLayer({
+          id: 'home-story-points-layer',
+          type: 'circle',
+          source: 'home-story-points',
+          paint: {
+            'circle-radius': 5,
+            'circle-color': ['coalesce', ['get', 'color'], '#2563eb'],
+            'circle-opacity': 0.95,
+            'circle-stroke-color': 'rgba(17, 24, 39, 0.35)',
+            'circle-stroke-width': 1,
+          },
+        })
+      }
+    }
+
+    const applyData = () => {
+      ensureSources()
+      const linesSource = map.getSource('home-story-lines')
+      const pointsSource = map.getSource('home-story-points')
+      if (linesSource && typeof linesSource.setData === 'function') linesSource.setData(next.lines)
+      if (pointsSource && typeof pointsSource.setData === 'function') pointsSource.setData(next.points)
+
+      const hasAny =
+        Array.isArray(next?.points?.features) && next.points.features.length > 0 ||
+        Array.isArray(next?.lines?.features) && next.lines.features.length > 0
+
+      ;['home-story-lines-layer', 'home-story-points-outline', 'home-story-points-layer'].forEach((layerId) => {
+        if (!map.getLayer(layerId)) return
+        try {
+          map.setLayoutProperty(layerId, 'visibility', hasAny ? 'visible' : 'none')
+        } catch {
+          // ignore
+        }
+      })
+
+      // Auto-fit once when the overlay loads/changes (but don't keep snapping after user moves).
+      const fitKey = hasAny && next.key ? `${routeKey}:${next.key}` : null
+      if (fitKey && lastHomeFitKeyRef.current !== fitKey) {
+        lastHomeFitKeyRef.current = fitKey
+        const coords = []
+        ;(next?.points?.features || []).forEach((f) => {
+          const c = f?.geometry?.coordinates
+          if (Array.isArray(c) && c.length === 2 && typeof c[0] === 'number' && typeof c[1] === 'number') coords.push(c)
+        })
+        if (coords.length >= 1) {
+          const lngs = coords.map((c) => c[0])
+          const lats = coords.map((c) => c[1])
+          const minLng = Math.min(...lngs)
+          const maxLng = Math.max(...lngs)
+          const minLat = Math.min(...lats)
+          const maxLat = Math.max(...lats)
+
+          isSyncingFromPropsRef.current = true
+          try {
+            if (coords.length === 1) {
+              map.easeTo({ center: coords[0], zoom: 8, duration: 800, pitch: 0, bearing: 0 })
+            } else {
+              map.fitBounds([[minLng, minLat], [maxLng, maxLat]], {
+                padding: { top: 60, bottom: 60, left: 60, right: 520 },
+                duration: 900,
+                pitch: 0,
+                bearing: 0,
+              })
+            }
+          } catch {
+            // ignore
+          } finally {
+            setTimeout(() => {
+              isSyncingFromPropsRef.current = false
+            }, 950)
+          }
+        }
+      }
+
+      if (!fitKey) {
+        lastHomeFitKeyRef.current = null
+      }
+    }
+
+    try {
+      applyData()
+    } catch {
+      map.once('idle', () => {
+        try {
+          applyData()
+        } catch {
+          // ignore
+        }
+      })
+    }
+  }, [homeOverlay, routeKey])
 
   // Keep camera in sync when props change (external flyTo)
   useEffect(() => {
