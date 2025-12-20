@@ -92,6 +92,7 @@ function ViewStoryView({ onEventsChange, onActiveEventIndexChange, onMapCameraCh
 
 
   const activeEvent = events[currentEventIndex] || null
+  const isSpecialEvent = activeEvent?.eventType === 'Opening' || activeEvent?.eventType === 'Closing'
   const formattedDate = useMemo(() => {
     if (!activeEvent) return ''
     return formatDateRange(activeEvent?.timeline?.dateStart, activeEvent?.timeline?.dateEnd)
@@ -108,6 +109,33 @@ function ViewStoryView({ onEventsChange, onActiveEventIndexChange, onMapCameraCh
   const eventText = eventTextRaw.trim()
   const canGoPrev = currentEventIndex > 0
   const canGoNext = Array.isArray(events) && currentEventIndex < events.length - 1
+
+  const nextTargetIndex = useMemo(() => {
+    if (!canGoNext) return null
+
+    // Match `goToNext` behavior: from Opening, jump to first real event that has coordinates (if any).
+    if (activeEvent?.eventType === 'Opening') {
+      const firstRealIndex = Array.isArray(events)
+        ? events.findIndex((ev) => {
+            if (!ev || ev.eventType === 'Opening' || ev.eventType === 'Closing') return false
+            const coords = ev?.location?.coordinates
+            return coords?.lng != null && coords?.lat != null
+          })
+        : -1
+
+      const targetIndex = firstRealIndex >= 0 ? firstRealIndex : currentEventIndex + 1
+      return Math.max(0, Math.min(events.length - 1, targetIndex))
+    }
+
+    return currentEventIndex + 1
+  }, [activeEvent?.eventType, canGoNext, currentEventIndex, events])
+
+  const nextEventButtonText = useMemo(() => {
+    if (nextTargetIndex == null) return 'Next Event'
+    const nextEvent = events[nextTargetIndex]
+    const title = typeof nextEvent?.title === 'string' ? nextEvent.title.trim() : ''
+    return title || 'Next Event'
+  }, [events, nextTargetIndex])
 
   const goToNext = () => {
     if (!canGoNext) return
@@ -172,7 +200,7 @@ function ViewStoryView({ onEventsChange, onActiveEventIndexChange, onMapCameraCh
   }
 
   // Determine what content to show based on card state
-  const showDate = cardDrag.cardState === 'open'
+  const showDate = cardDrag.cardState === 'open' && !isSpecialEvent
   const showImage = cardDrag.cardState === 'open'
   const showText = cardDrag.cardState === 'open'
   const showNavButtons = cardDrag.cardState === 'closed'
@@ -189,8 +217,8 @@ function ViewStoryView({ onEventsChange, onActiveEventIndexChange, onMapCameraCh
       {/* Header - hidden on mobile, shown on desktop */}
       <header className="app-header view-story-header">
         <div className="header-top-row">
-          <button type="button" className="back-btn" onClick={() => navigate('/')} title="Back">
-            <span aria-label="Back" role="img" style={{ marginRight: '0.4em' }}>←</span>back
+          <button type="button" className="back-btn" onClick={() => navigate('/')} title="Home">
+            <span aria-label="Home" role="img" style={{ marginRight: '0.4em' }}>←</span>Home
           </button>
         </div>
       </header>
@@ -209,43 +237,112 @@ function ViewStoryView({ onEventsChange, onActiveEventIndexChange, onMapCameraCh
         ) : (
           <article className="view-story-card" aria-label="Story event">
             <h2 className="view-story-title">{eventTitle || 'שם האירוע'}</h2>
-            <div className="view-story-date">{formattedDate || 'תאריך מלא'}</div>
-
-            {media.oldUrl ? (
-              <figure className="view-story-media">
-                {media.newUrl ? (
-                  <div ref={imageComparison.compareFrameRef} className="view-story-image-frame view-story-compare">
-                    <img className="view-story-image" src={media.oldUrl} alt="" />
-                    <div
-                      className="view-story-compare-new"
-                      style={{ clipPath: `inset(0 0 0 ${clampPct(imageComparison.revealPct)}%)` }}
-                      aria-hidden="true"
-                    >
-                      <img className="view-story-image" src={media.newUrl} alt="" />
-                    </div>
-                    <div className="view-story-compare-divider" style={{ left: `${clampPct(imageComparison.revealPct)}%` }} aria-hidden="true" />
-                    <button
-                      type="button"
-                      className="view-story-compare-handle"
-                      style={{ left: `${imageComparison.revealPct}%` }}
-                      aria-label="Move to compare images"
-                      {...imageComparison.handlers}
-                    >
-                      ↔
-                    </button>
-                  </div>
-                ) : (
-                  <div className="view-story-image-frame">
-                    <img className="view-story-image" src={media.oldUrl} alt="" />
-                    <div className="view-story-image-hint" aria-hidden="true">↔</div>
-                  </div>
-                )}
-
-                {media.caption ? <figcaption className="view-story-caption">{media.caption}</figcaption> : null}
-              </figure>
+            {!isSpecialEvent ? (
+              <div className="view-story-date">{formattedDate || 'תאריך מלא'}</div>
             ) : null}
 
-            <div className="view-story-text">{eventText || 'טקסט מלא על האירוע'}</div>
+            {isSpecialEvent ? (
+              <>
+                <div className="view-story-text">{eventText || 'טקסט מלא על האירוע'}</div>
+                {media.oldUrl ? (
+                  <figure className="view-story-media">
+                    {media.newUrl ? (
+                      <div
+                        ref={imageComparison.compareFrameRef}
+                        className="view-story-image-frame view-story-compare"
+                      >
+                        <img className="view-story-image" src={media.oldUrl} alt="" />
+                        <div
+                          className="view-story-compare-new"
+                          style={{ clipPath: `inset(0 0 0 ${clampPct(imageComparison.revealPct)}%)` }}
+                          aria-hidden="true"
+                        >
+                          <img className="view-story-image" src={media.newUrl} alt="" />
+                        </div>
+                        <div
+                          className="view-story-compare-divider"
+                          style={{ left: `${clampPct(imageComparison.revealPct)}%` }}
+                          aria-hidden="true"
+                        />
+                        <button
+                          type="button"
+                          className="view-story-compare-handle"
+                          style={{ left: `${imageComparison.revealPct}%` }}
+                          aria-label="Move to compare images"
+                          {...imageComparison.handlers}
+                        >
+                          <span className="view-story-compare-handle-icon" aria-hidden="true">
+                            ↔
+                          </span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="view-story-image-frame">
+                        <img className="view-story-image" src={media.oldUrl} alt="" />
+                        <div className="view-story-image-hint" aria-hidden="true">
+                          ↔
+                        </div>
+                      </div>
+                    )}
+
+                    {media.caption ? (
+                      <figcaption className="view-story-caption">{media.caption}</figcaption>
+                    ) : null}
+                  </figure>
+                ) : null}
+              </>
+            ) : (
+              <>
+                {media.oldUrl ? (
+                  <figure className="view-story-media">
+                    {media.newUrl ? (
+                      <div
+                        ref={imageComparison.compareFrameRef}
+                        className="view-story-image-frame view-story-compare"
+                      >
+                        <img className="view-story-image" src={media.oldUrl} alt="" />
+                        <div
+                          className="view-story-compare-new"
+                          style={{ clipPath: `inset(0 0 0 ${clampPct(imageComparison.revealPct)}%)` }}
+                          aria-hidden="true"
+                        >
+                          <img className="view-story-image" src={media.newUrl} alt="" />
+                        </div>
+                        <div
+                          className="view-story-compare-divider"
+                          style={{ left: `${clampPct(imageComparison.revealPct)}%` }}
+                          aria-hidden="true"
+                        />
+                        <button
+                          type="button"
+                          className="view-story-compare-handle"
+                          style={{ left: `${imageComparison.revealPct}%` }}
+                          aria-label="Move to compare images"
+                          {...imageComparison.handlers}
+                        >
+                          <span className="view-story-compare-handle-icon" aria-hidden="true">
+                            ↔
+                          </span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="view-story-image-frame">
+                        <img className="view-story-image" src={media.oldUrl} alt="" />
+                        <div className="view-story-image-hint" aria-hidden="true">
+                          ↔
+                        </div>
+                      </div>
+                    )}
+
+                    {media.caption ? (
+                      <figcaption className="view-story-caption">{media.caption}</figcaption>
+                    ) : null}
+                  </figure>
+                ) : null}
+
+                <div className="view-story-text">{eventText || 'טקסט מלא על האירוע'}</div>
+              </>
+            )}
           </article>
         )}
       </div>
@@ -265,48 +362,110 @@ function ViewStoryView({ onEventsChange, onActiveEventIndexChange, onMapCameraCh
           <h2 className="view-story-title">{eventTitle || 'שם האירוע'}</h2>
           
           {/* Date - visible when open */}
-          {showDate && (
-            <div className="view-story-date">{formattedDate || 'תאריך מלא'}</div>
-          )}
+          {showDate ? <div className="view-story-date">{formattedDate || 'תאריך מלא'}</div> : null}
 
-          {/* Image - visible when open */}
-          {showImage && media.oldUrl ? (
-            <figure className="view-story-media">
-              {media.newUrl ? (
-                <div ref={imageComparison.compareFrameRef} className="view-story-image-frame view-story-compare">
-                  <img className="view-story-image" src={media.oldUrl} alt="" />
-                  <div
-                    className="view-story-compare-new"
-                    style={{ clipPath: `inset(0 0 0 ${clampPct(imageComparison.revealPct)}%)` }}
-                    aria-hidden="true"
-                  >
-                    <img className="view-story-image" src={media.newUrl} alt="" />
-                  </div>
-                  <div className="view-story-compare-divider" style={{ left: `${clampPct(imageComparison.revealPct)}%` }} aria-hidden="true" />
-                  <button
-                    type="button"
-                    className="view-story-compare-handle"
-                    style={{ left: `${imageComparison.revealPct}%` }}
-                    aria-label="Move to compare images"
-                    {...imageComparison.handlers}
-                  >
-                    ↔
-                  </button>
-                </div>
-              ) : (
-                <div className="view-story-image-frame">
-                  <img className="view-story-image" src={media.oldUrl} alt="" />
-                  <div className="view-story-image-hint" aria-hidden="true">↔</div>
-                </div>
-              )}
+          {isSpecialEvent ? (
+            <>
+              {/* Text - only visible when fully open */}
+              {showText ? <div className="view-story-text">{eventText || 'טקסט מלא על האירוע'}</div> : null}
 
-              {media.caption ? <figcaption className="view-story-caption">{media.caption}</figcaption> : null}
-            </figure>
-          ) : null}
+              {/* Image - visible when open */}
+              {showImage && media.oldUrl ? (
+                <figure className="view-story-media">
+                  {media.newUrl ? (
+                    <div
+                      ref={imageComparison.compareFrameRef}
+                      className="view-story-image-frame view-story-compare"
+                    >
+                      <img className="view-story-image" src={media.oldUrl} alt="" />
+                      <div
+                        className="view-story-compare-new"
+                        style={{ clipPath: `inset(0 0 0 ${clampPct(imageComparison.revealPct)}%)` }}
+                        aria-hidden="true"
+                      >
+                        <img className="view-story-image" src={media.newUrl} alt="" />
+                      </div>
+                      <div
+                        className="view-story-compare-divider"
+                        style={{ left: `${clampPct(imageComparison.revealPct)}%` }}
+                        aria-hidden="true"
+                      />
+                      <button
+                        type="button"
+                        className="view-story-compare-handle"
+                        style={{ left: `${imageComparison.revealPct}%` }}
+                        aria-label="Move to compare images"
+                        {...imageComparison.handlers}
+                      >
+                        <span className="view-story-compare-handle-icon" aria-hidden="true">
+                          ↔
+                        </span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="view-story-image-frame">
+                      <img className="view-story-image" src={media.oldUrl} alt="" />
+                      <div className="view-story-image-hint" aria-hidden="true">
+                        ↔
+                      </div>
+                    </div>
+                  )}
 
-          {/* Text - only visible when fully open */}
-          {showText && (
-            <div className="view-story-text">{eventText || 'טקסט מלא על האירוע'}</div>
+                  {media.caption ? <figcaption className="view-story-caption">{media.caption}</figcaption> : null}
+                </figure>
+              ) : null}
+            </>
+          ) : (
+            <>
+              {/* Image - visible when open */}
+              {showImage && media.oldUrl ? (
+                <figure className="view-story-media">
+                  {media.newUrl ? (
+                    <div
+                      ref={imageComparison.compareFrameRef}
+                      className="view-story-image-frame view-story-compare"
+                    >
+                      <img className="view-story-image" src={media.oldUrl} alt="" />
+                      <div
+                        className="view-story-compare-new"
+                        style={{ clipPath: `inset(0 0 0 ${clampPct(imageComparison.revealPct)}%)` }}
+                        aria-hidden="true"
+                      >
+                        <img className="view-story-image" src={media.newUrl} alt="" />
+                      </div>
+                      <div
+                        className="view-story-compare-divider"
+                        style={{ left: `${clampPct(imageComparison.revealPct)}%` }}
+                        aria-hidden="true"
+                      />
+                      <button
+                        type="button"
+                        className="view-story-compare-handle"
+                        style={{ left: `${imageComparison.revealPct}%` }}
+                        aria-label="Move to compare images"
+                        {...imageComparison.handlers}
+                      >
+                        <span className="view-story-compare-handle-icon" aria-hidden="true">
+                          ↔
+                        </span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="view-story-image-frame">
+                      <img className="view-story-image" src={media.oldUrl} alt="" />
+                      <div className="view-story-image-hint" aria-hidden="true">
+                        ↔
+                      </div>
+                    </div>
+                  )}
+
+                  {media.caption ? <figcaption className="view-story-caption">{media.caption}</figcaption> : null}
+                </figure>
+              ) : null}
+
+              {/* Text - only visible when fully open */}
+              {showText ? <div className="view-story-text">{eventText || 'טקסט מלא על האירוע'}</div> : null}
+            </>
           )}
 
           {/* Navigation buttons - visible when closed */}
@@ -327,7 +486,7 @@ function ViewStoryView({ onEventsChange, onActiveEventIndexChange, onMapCameraCh
                   onClick={goToNext}
                   disabled={!canGoNext}
                 >
-                  <span>Next Event</span>
+                  <span>{nextEventButtonText}</span>
                   <span className="next-arrow">←</span>
                 </button>
               </div>
@@ -354,7 +513,7 @@ function ViewStoryView({ onEventsChange, onActiveEventIndexChange, onMapCameraCh
               onClick={goToNext}
               disabled={!canGoNext}
             >
-              <span>Next Event</span>
+              <span>{nextEventButtonText}</span>
               <span className="next-arrow">←</span>
             </button>
           </div>

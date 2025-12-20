@@ -29,7 +29,6 @@
     position: static;
     width: 100%;
     max-width: 440px;
-    margin: 0 auto 0rem;
     padding: 0 1rem;
     box-sizing: border-box;
     top: auto;
@@ -55,6 +54,8 @@
 
 .view-story-header .back-btn {
   direction: ltr;
+  margin-bottom: 0.5rem;
+
 }
 
 .view-story-story-name {
@@ -66,7 +67,7 @@
 
 .view-story-card {
   width: 100%;
-  max-width: 360px;
+  max-width: 380px;
   max-height: 75vh;
   margin: 0;
   margin-inline: auto;
@@ -89,15 +90,8 @@
   width: 6px; /* Narrow scrollbar */
 }
 
-.view-story-card::-webkit-scrollbar-button {
-  display: none; /* Hide scrollbar arrows/buttons */
-  height: 0;
-  width: 0;
-}
-
 .view-story-card::-webkit-scrollbar-track {
   background: transparent;
-  border-radius: 3px;
 }
 
 .view-story-card::-webkit-scrollbar-thumb {
@@ -111,16 +105,18 @@
 
 .view-story-title {
   margin: 0.15rem 0 0;
-  font-size: 1.7rem;
+  font-size: 1.8rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   text-align: center;
   color: #111827;
+  font-family: "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  
 }
 
 .view-story-date {
   margin-top: 0.15rem;
-  font-size: 0.95rem;
+  font-size: 1.1rem;
   color: #6b7280;
   text-align: center;
 }
@@ -162,19 +158,23 @@
 
 .view-story-caption {
   margin: 0.45rem 0 0;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   color: #6b7280;
   text-align: center;
 }
 
 .view-story-text {
   margin-top: 0.9rem;
-  font-size: 1rem;
+  margin-left: 5px;
+  margin-right: 5px;
+  font-size: 1.1rem;
   line-height: 1.85;
   color: #111827;
   white-space: pre-wrap;
   direction: rtl;
-  text-align: right;
+  text-align: justify;
+  text-align-last: right;
+  text-justify: inter-word;
 }
 
 .view-story-bottom-nav {
@@ -211,7 +211,7 @@
 .view-story-nav-btn {
   border-radius: 999px;
   padding: 0.85rem 1.1rem;
-  font-size: 1.05rem;
+  font-size: 1.0rem;
   font-weight: 800;
   border: 1px solid rgba(209, 213, 219, 0.95);
   box-shadow: 0 10px 20px rgba(15, 23, 42, 0.18);
@@ -236,6 +236,19 @@
   gap: 0.5rem;
   box-shadow: 0 8px 18px rgba(37, 99, 235, 0.35);
   transition: filter 0.2s, transform 0.1s, box-shadow 0.2s;
+  min-width: 0; /* allow children to shrink so text can ellipsis instead of wrapping */
+}
+
+.view-story-nav-btn.next > span:first-child {
+  font-family: "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  min-width: 0;
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
 }
 
 .view-story-nav-btn.next:hover:not(:disabled) {
@@ -244,6 +257,7 @@
 }
 
 .view-story-nav-btn.next .next-arrow {
+  flex: 0 0 auto;
   font-size: 1.2em;
   line-height: 1;
   transition: transform 0.2s;
@@ -284,12 +298,12 @@
 
 .view-story-compare-handle {
   position: absolute;
-  top: 50%;
+  top:50%;
   transform: translate(-50%, -50%);
   width: 32px;
   height: 32px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.62);
   border: 1px solid rgba(209, 213, 219, 0.95);
   display: flex;
   align-items: center;
@@ -302,6 +316,13 @@
   user-select: none;
   touch-action: none;
   padding: 0;
+}
+
+.view-story-compare-handle-icon {
+  display: block;
+  line-height: 1;
+  /* Unicode arrow glyph sits slightly low in most fonts; nudge up for true visual center */
+  transform: translateY(-2px);
 }
 
 .view-story-compare-handle:hover {

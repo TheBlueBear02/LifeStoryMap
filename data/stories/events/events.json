@@ -1,5 +1,25 @@
 [
   {
+    "eventId": "OPENING",
+    "eventType": "Opening",
+    "title": "דרכי חיי",
+    "content": {
+      "textHtml": "לכבוד יום השואה 13.4.2026",
+      "media": [
+        {
+          "type": "image",
+          "url": "/stories/images/1766267540888-wpq974.jpg"
+        }
+      ],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    }
+  },
+  {
     "eventId": "E001",
     "eventType": "Event",
     "title": "לידה וילדות",
@@ -262,6 +282,21 @@
         "mapStyle": "mapbox://styles/mapbox/streets-v12"
       }
     },
+    "content": {
+      "textHtml": "",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    }
+  },
+  {
+    "eventId": "CLOSING",
+    "eventType": "Closing",
+    "title": "Closing",
     "content": {
       "textHtml": "",
       "media": [],

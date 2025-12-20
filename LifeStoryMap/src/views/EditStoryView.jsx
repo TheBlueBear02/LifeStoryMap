@@ -641,9 +641,9 @@ function EditStoryView({
               }
               navigate('/')
             }}
-            title="Back"
+            title="Home"
           >
-            <span aria-label="Back" role="img" style={{ marginRight: '0.4em' }}>←</span>back
+            <span aria-label="Home" role="img" style={{ marginRight: '0.4em' }}>←</span>Home
           </button>
         </div>
         <div>

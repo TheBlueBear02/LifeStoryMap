@@ -170,7 +170,9 @@
     color: #111827;
     white-space: pre-wrap;
     direction: rtl;
-    text-align: right;
+    text-align: justify;
+    text-align-last: right;
+    text-justify: inter-word;
   }
 
   /* Navigation buttons in mobile card */
