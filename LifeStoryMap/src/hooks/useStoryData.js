@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getStory, getEvents } from '../services/storyService.js'
+import { getStory } from '../services/storyService.js'
+import { getEvents } from '../services/eventService.js'
 
 /**
  * Hook for fetching story and events data
