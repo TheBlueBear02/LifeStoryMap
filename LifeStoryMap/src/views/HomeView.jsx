@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import logoImage from '../assets/Logos/logo no name no bg.png'
+import { getStories, createStory, updateStory, deleteStory } from '../services/storyService.js'
+import { ROUTES } from '../constants/paths.js'
 
 function HomeView() {
   const [stories, setStories] = useState([])
@@ -16,10 +18,8 @@ function HomeView() {
   useEffect(() => {
     const loadStories = async () => {
       try {
-        const res = await fetch('/api/stories')
-        if (!res.ok) throw new Error('Failed to load stories')
-        const data = await res.json()
-        setStories(Array.isArray(data) ? data : [])
+        const data = await getStories()
+        setStories(data)
       } catch (err) {
         console.error(err)
         setStories([])
@@ -35,24 +35,14 @@ function HomeView() {
     if (!newStoryName.trim()) return
 
     try {
-      const res = await fetch('/api/stories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newStoryName.trim() }),
-      })
-      if (!res.ok) {
-        const error = await res.json()
-        alert(error.error || 'Failed to create story')
-        return
-      }
-      const newStory = await res.json()
+      const newStory = await createStory(newStoryName.trim())
       setStories([...stories, newStory])
       setNewStoryName('')
       setSelectedSlot(null)
-      navigate(`/edit-story/${newStory.id}`)
+      navigate(ROUTES.EDIT_STORY(newStory.id))
     } catch (err) {
       console.error(err)
-      alert('Failed to create story')
+      alert(err.message || 'Failed to create story')
     }
   }
 
@@ -65,18 +55,11 @@ function HomeView() {
     }
 
     try {
-      const res = await fetch(`/api/stories/${storyId}`, {
-        method: 'DELETE',
-      })
-      if (!res.ok) {
-        const error = await res.json()
-        alert(error.error || 'Failed to delete story')
-        return
-      }
+      await deleteStory(storyId)
       setStories(stories.filter((s) => s.id !== storyId))
     } catch (err) {
       console.error(err)
-      alert('Failed to delete story')
+      alert(err.message || 'Failed to delete story')
     }
   }
 
@@ -119,23 +102,13 @@ function HomeView() {
     }
 
     try {
-      const res = await fetch(`/api/stories/${storyId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: editingStoryName.trim() }),
-      })
-      if (!res.ok) {
-        const error = await res.json()
-        alert(error.error || 'Failed to update story name')
-        return
-      }
-      const updatedStory = await res.json()
+      const updatedStory = await updateStory(storyId, { name: editingStoryName.trim() })
       setStories(stories.map((s) => (s.id === storyId ? updatedStory : s)))
       setEditingStoryId(null)
       setEditingStoryName('')
     } catch (err) {
       console.error(err)
-      alert('Failed to update story name')
+      alert(err.message || 'Failed to update story name')
     }
   }
 
@@ -250,13 +223,13 @@ function HomeView() {
                     </div>
                     <div className="story-card-actions">
                       <Link
-                        to={`/view-story/${story.id}`}
+                        to={ROUTES.VIEW_STORY(story.id)}
                         className="primary-btn story-view-btn"
                       >
                         View
                       </Link>
                       <Link
-                        to={`/edit-story/${story.id}`}
+                        to={ROUTES.EDIT_STORY(story.id)}
                         className="secondary-btn story-edit-btn"
                       >
                         Edit Story

@@ -1,0 +1,53 @@
+import { get, post, put, del } from './api.js'
+import { API_PATHS } from '../constants/paths.js'
+
+/**
+ * Story service for CRUD operations
+ */
+
+/**
+ * Fetches all stories
+ * @returns {Promise<Array>} - Array of story objects
+ */
+export async function getStories() {
+  const data = await get(API_PATHS.STORIES)
+  return Array.isArray(data) ? data : []
+}
+
+/**
+ * Fetches a single story by ID
+ * @param {string} storyId - Story ID
+ * @returns {Promise<Object>} - Story object
+ */
+export async function getStory(storyId) {
+  return get(API_PATHS.STORY(storyId))
+}
+
+/**
+ * Creates a new story
+ * @param {string} name - Story name
+ * @returns {Promise<Object>} - Created story object
+ */
+export async function createStory(name) {
+  return post(API_PATHS.STORIES, { name: name.trim() })
+}
+
+/**
+ * Updates a story
+ * @param {string} storyId - Story ID
+ * @param {Object} updates - Story updates (e.g., { name: 'New Name' })
+ * @returns {Promise<Object>} - Updated story object
+ */
+export async function updateStory(storyId, updates) {
+  return put(API_PATHS.STORY(storyId), updates)
+}
+
+/**
+ * Deletes a story
+ * @param {string} storyId - Story ID
+ * @returns {Promise<void>}
+ */
+export async function deleteStory(storyId) {
+  return del(API_PATHS.STORY(storyId))
+}
+

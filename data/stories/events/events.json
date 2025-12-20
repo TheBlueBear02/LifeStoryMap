@@ -250,13 +250,13 @@
       "dateEnd": ""
     },
     "location": {
-      "name": "Kyiv, Ukraine",
+      "name": "Михайлівка, Ukraine",
       "coordinates": {
-        "lat": 50.450034,
-        "lng": 30.524136
+        "lat": 51.06180412872857,
+        "lng": 28.650920962643312
       },
       "mapView": {
-        "zoom": 12,
+        "zoom": 6.6896267963263085,
         "pitch": 0,
         "bearing": 0,
         "mapStyle": "mapbox://styles/mapbox/streets-v12"
