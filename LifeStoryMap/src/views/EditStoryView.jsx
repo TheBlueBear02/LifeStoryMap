@@ -529,9 +529,15 @@ function EditStoryView({
   }
 
   const beginPickLocationForEvent = (index) => {
+    // `beginPickLocation` updates internal state asynchronously; we need to tell App
+    // the *next* picking state immediately so map clicks start being captured right away.
+    const willToggleOff =
+      locationPicker.isPickingLocation && locationPicker.activeEventIndex === index
+    const nextIsPicking = !willToggleOff
+
     locationPicker.beginPickLocation(index, markerLocation)
     if (onPickingLocationChange) {
-      onPickingLocationChange(locationPicker.isPickingLocation)
+      onPickingLocationChange(nextIsPicking)
     }
     if (onLastMapClickChange) {
       onLastMapClickChange(null)

@@ -50,7 +50,7 @@
 
 .home-content h1 {
   font-size: 3rem;
-  margin: 0 0 0.75rem;
+  margin: 0 0 0rem;
   text-align: center;
   font-family: 'Georgia', 'Times New Roman', serif;
   font-weight: 700;
@@ -63,7 +63,7 @@
   width: 260px;
   height: 2px;
   background-color: #8E7E5A;
-  margin: 0.75rem auto 0.75rem;
+  margin: 0rem auto 0.75rem;
 }
 
 .home-subtitle {
