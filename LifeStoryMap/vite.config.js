@@ -43,12 +43,16 @@ export default defineConfig(({ mode }) => {
           // GET /api/stories - get all stories
           if (req.method === 'GET' && !storyId) {
             try {
+              console.log('Reading stories from:', storiesFilePath)
               let stories = []
               try {
                 const json = await fs.promises.readFile(storiesFilePath, 'utf8')
                 stories = JSON.parse(json)
+                console.log('Successfully loaded', stories.length, 'stories')
               } catch (err) {
                 // File doesn't exist, return empty array
+                console.error('Error reading stories file:', err.message)
+                console.error('File path:', storiesFilePath)
                 stories = []
               }
               res.setHeader('Content-Type', 'application/json')

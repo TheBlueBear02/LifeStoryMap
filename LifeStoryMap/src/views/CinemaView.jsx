@@ -1,20 +1,158 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import EventTimeline from '../components/EventTimeline'
 import { useStoryData } from '../hooks/useStoryData.js'
+import { useImageComparison } from '../hooks/useImageComparison.js'
 import { formatDateRange } from '../utils/dateUtils.js'
 import { getMainMedia } from '../utils/imageUtils.js'
-import { getAudioUrl, hasAudio } from '../services/audioService.js'
+import { calculateDistanceKm } from '../utils/mapUtils.js'
+import '../styles/view-story-view.css'
+import '../styles/view-story-view-mobile.css'
 import '../styles/cinema-view.css'
 
 function CinemaView({ onEventsChange, onActiveEventIndexChange, onMapCameraChange }) {
   const navigate = useNavigate()
   const { storyId } = useParams()
   const [currentEventIndex, setCurrentEventIndex] = useState(0)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const audioElementRef = useRef(null)
+  const [timeRemaining, setTimeRemaining] = useState(0)
+  const autoAdvanceTimeoutRef = useRef(null)
+  const cameraAnimationTimeoutRef = useRef(null)
+  const lastEventIndexRef = useRef(null)
+  const timerIntervalRef = useRef(null)
 
   // Use custom hooks
   const { loading, story, events } = useStoryData(storyId)
+  const imageComparison = useImageComparison({
+    resetOnChange: true,
+    resetDependency: currentEventIndex,
+  })
+
+  // Calculate animation duration based on distance between events
+  const calculateAnimationDuration = (fromEvent, toEvent) => {
+    const fromCoords = fromEvent?.location?.coordinates
+    const toCoords = toEvent?.location?.coordinates
+    
+    if (!fromCoords || !toCoords || 
+        fromCoords.lng == null || fromCoords.lat == null ||
+        toCoords.lng == null || toCoords.lat == null) {
+      // Default duration if coordinates are missing
+      return 2000
+    }
+
+    const from = [fromCoords.lng, fromCoords.lat]
+    const to = [toCoords.lng, toCoords.lat]
+    const distanceKm = calculateDistanceKm(from, to)
+
+    // Map distance to duration: short hops are quick (but at least 4s), long jumps are slower.
+    // Clamp final duration strictly to the 4–13s range (same logic as MapView.jsx)
+    const secondsFromDistance = 3 + Math.min(9, (distanceKm / 500) * 9) // base 3s, up to 12s for very long jumps
+    const durationMs = Math.max(4000, Math.min(13000, secondsFromDistance * 1000))
+    
+    return durationMs
+  }
+
+  // Helper function to advance to next event
+  const advanceToNextEvent = () => {
+    // Use current state value, not closure value
+    setCurrentEventIndex((currentIdx) => {
+      const nextIndex = currentIdx + 1
+      if (nextIndex < events.length) {
+        const currentEvent = events[currentIdx] || null
+        // Handle special Opening event behavior - jump to first real event
+        if (currentEvent?.eventType === 'Opening') {
+          const firstRealIndex = Array.isArray(events)
+            ? events.findIndex((ev) => {
+                if (!ev || ev.eventType === 'Opening' || ev.eventType === 'Closing') return false
+                const coords = ev?.location?.coordinates
+                return coords?.lng != null && coords?.lat != null
+              })
+            : -1
+
+          const targetIndex = firstRealIndex >= 0 ? firstRealIndex : nextIndex
+          const clamped = Math.max(0, Math.min(events.length - 1, targetIndex))
+          onActiveEventIndexChange?.(clamped)
+
+          // Update map camera for the new event
+          const targetEvent = events[clamped]
+          const coords = targetEvent?.location?.coordinates
+          if (coords?.lng != null && coords?.lat != null && onMapCameraChange) {
+            const zoomRaw = targetEvent?.location?.mapView?.zoom
+            const zoom = typeof zoomRaw === 'number' ? zoomRaw : 12
+            // Calculate animation duration based on distance
+            const animationDuration = calculateAnimationDuration(currentEvent, targetEvent)
+            onMapCameraChange({
+              center: [coords.lng, coords.lat],
+              zoom,
+              pitch: 0,
+              bearing: 0,
+              durationMs: animationDuration,
+            })
+          }
+          return clamped
+        } else {
+          // Normal advance to next event
+          const clamped = Math.max(0, Math.min(events.length - 1, nextIndex))
+          onActiveEventIndexChange?.(clamped)
+
+          // Update map camera for the new event
+          const nextEvent = events[clamped]
+          const coords = nextEvent?.location?.coordinates
+          if (nextEvent?.eventType !== 'Opening' && coords?.lng != null && coords?.lat != null && onMapCameraChange) {
+            const zoomRaw = nextEvent?.location?.mapView?.zoom
+            const zoom = typeof zoomRaw === 'number' ? zoomRaw : 10
+            // Calculate animation duration based on distance
+            const animationDuration = calculateAnimationDuration(currentEvent, nextEvent)
+            onMapCameraChange({
+              center: [coords.lng, coords.lat],
+              zoom,
+              pitch: 0,
+              bearing: 0,
+              durationMs: animationDuration,
+            })
+          }
+          return clamped
+        }
+      } else {
+        // End of story, exit cinema mode
+        navigate('/')
+        return currentIdx
+      }
+    })
+  }
+
+  // Start the timer after camera animation completes
+  // The timer duration is 5 seconds (display time after animation completes)
+  const startAutoAdvanceTimer = (totalDurationMs) => {
+    // Clear any existing timeout and interval
+    if (autoAdvanceTimeoutRef.current) {
+      clearTimeout(autoAdvanceTimeoutRef.current)
+    }
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current)
+    }
+
+    // Set initial time remaining
+    setTimeRemaining(totalDurationMs)
+
+    // Update timer every 100ms for smooth animation
+    timerIntervalRef.current = setInterval(() => {
+      setTimeRemaining((prev) => {
+        const newTime = Math.max(0, prev - 100)
+        if (newTime === 0) {
+          if (timerIntervalRef.current) {
+            clearInterval(timerIntervalRef.current)
+            timerIntervalRef.current = null
+          }
+        }
+        return newTime
+      })
+    }, 100)
+
+    // Auto-advance to next event after total duration
+    autoAdvanceTimeoutRef.current = setTimeout(() => {
+      advanceToNextEvent()
+    }, totalDurationMs)
+  }
 
   // Update parent when events change
   useEffect(() => {
@@ -29,18 +167,40 @@ function CinemaView({ onEventsChange, onActiveEventIndexChange, onMapCameraChang
       const nextActiveIndex = 0
       setCurrentEventIndex(nextActiveIndex)
       onActiveEventIndexChange?.(nextActiveIndex)
+      lastEventIndexRef.current = nextActiveIndex
 
       const first = events[0]
       const coords = first?.location?.coordinates
       if (first?.eventType !== 'Opening' && coords?.lng != null && coords?.lat != null && onMapCameraChange) {
         const zoomRaw = first?.location?.mapView?.zoom
         const zoom = typeof zoomRaw === 'number' ? zoomRaw : 10
+        
+        // Calculate animation duration based on distance to next event
+        let cameraAnimationDuration = 2000 // Default fallback
+        if (events.length > 1) {
+          const nextEvent = events[1]
+          cameraAnimationDuration = calculateAnimationDuration(first, nextEvent)
+        }
+        
         onMapCameraChange({
           center: [coords.lng, coords.lat],
           zoom,
           pitch: 0,
           bearing: 0,
+          durationMs: cameraAnimationDuration,
         })
+        // Wait for initial camera animation before starting timer
+        if (cameraAnimationTimeoutRef.current) {
+          clearTimeout(cameraAnimationTimeoutRef.current)
+        }
+        const displayDuration = 5000 // 5 seconds display time per event
+        const totalDuration = cameraAnimationDuration + displayDuration
+        cameraAnimationTimeoutRef.current = setTimeout(() => {
+          startAutoAdvanceTimer(displayDuration)
+        }, cameraAnimationDuration)
+      } else {
+        // No camera change needed, start timer immediately
+        startAutoAdvanceTimer()
       }
     } else {
       onActiveEventIndexChange?.(null)
@@ -81,110 +241,118 @@ function CinemaView({ onEventsChange, onActiveEventIndexChange, onMapCameraChang
   const eventTextRaw = typeof activeEvent?.content?.textHtml === 'string' ? activeEvent.content.textHtml : ''
   const eventText = eventTextRaw.trim()
 
-  // Handle audio playback
+  const clampPct = (n) => Math.max(0, Math.min(100, n))
+
+  // Handle camera changes and start timer after animation completes
   useEffect(() => {
     if (!activeEvent) {
-      if (audioElementRef.current) {
-        audioElementRef.current.pause()
-        setIsPlaying(false)
-      }
       return
     }
 
-    const audioUrl = getAudioUrl(activeEvent)
-    if (!audioUrl) {
-      setIsPlaying(false)
-      // Auto-advance to next event if no audio after 2 seconds
-      const nextIndex = currentEventIndex + 1
-      if (nextIndex < events.length) {
-        const timeout = setTimeout(() => {
-          goToEventIndex(nextIndex)
-        }, 2000)
-        return () => clearTimeout(timeout)
-      } else {
-        // End of story, exit cinema mode
-        const timeout = setTimeout(() => {
-          navigate(`/view-story/${storyId}`)
-        }, 2000)
-        return () => clearTimeout(timeout)
-      }
-    }
+    // Check if this is a new event (not just a re-render)
+    const isNewEvent = lastEventIndexRef.current !== currentEventIndex
+    lastEventIndexRef.current = currentEventIndex
 
-    // Create or update audio element
-    let audio = audioElementRef.current
-    if (!audio) {
-      audio = new Audio()
-      audioElementRef.current = audio
-      
-      audio.addEventListener('ended', () => {
-        setIsPlaying(false)
-        // Auto-advance to next event
+    if (isNewEvent) {
+      // Clear any existing timeouts and reset timer
+      if (autoAdvanceTimeoutRef.current) {
+        clearTimeout(autoAdvanceTimeoutRef.current)
+        autoAdvanceTimeoutRef.current = null
+      }
+      if (cameraAnimationTimeoutRef.current) {
+        clearTimeout(cameraAnimationTimeoutRef.current)
+        cameraAnimationTimeoutRef.current = null
+      }
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current)
+        timerIntervalRef.current = null
+      }
+      setTimeRemaining(0)
+
+      // Check if this event needs a camera change
+      const needsCameraChange = activeEvent?.eventType !== 'Opening' && 
+                                 activeEvent?.location?.coordinates?.lng != null && 
+                                 activeEvent?.location?.coordinates?.lat != null
+
+      if (needsCameraChange && onMapCameraChange) {
+        // Calculate animation duration based on distance to next event
         const nextIndex = currentEventIndex + 1
+        let cameraAnimationDuration = 2000 // Default fallback
+        
         if (nextIndex < events.length) {
-          goToEventIndex(nextIndex)
+          const nextEvent = events[nextIndex]
+          // Calculate distance-based animation duration
+          cameraAnimationDuration = calculateAnimationDuration(activeEvent, nextEvent)
         } else {
-          // End of story, exit cinema mode
-          navigate(`/view-story/${storyId}`)
+          // Last event - use default duration
+          cameraAnimationDuration = 2000
         }
-      })
-
-      audio.addEventListener('play', () => setIsPlaying(true))
-      audio.addEventListener('pause', () => setIsPlaying(false))
-      audio.addEventListener('error', () => {
-        setIsPlaying(false)
-        console.error('Audio playback error')
-        // Try to advance to next event on error
-        const nextIndex = currentEventIndex + 1
-        if (nextIndex < events.length) {
-          setTimeout(() => goToEventIndex(nextIndex), 1000)
-        }
-      })
-    }
-
-    // Update audio source if changed
-    if (audio.src !== audioUrl) {
-      audio.src = audioUrl
-    }
-
-    // Play audio
-    audio.play().catch((err) => {
-      console.error('Failed to play audio:', err)
-      setIsPlaying(false)
-      // Try to advance to next event on play error
-      const nextIndex = currentEventIndex + 1
-      if (nextIndex < events.length) {
-        setTimeout(() => goToEventIndex(nextIndex), 1000)
+        
+        // Wait for camera animation to complete, then start the 5-second timer
+        const displayDuration = 5000 // 5 seconds display time per event
+        cameraAnimationTimeoutRef.current = setTimeout(() => {
+          startAutoAdvanceTimer(displayDuration)
+        }, cameraAnimationDuration)
+      } else {
+        // No camera change needed, start timer immediately
+        startAutoAdvanceTimer()
       }
-    })
+    }
 
     return () => {
-      if (audio) {
-        audio.pause()
+      if (autoAdvanceTimeoutRef.current) {
+        clearTimeout(autoAdvanceTimeoutRef.current)
+        autoAdvanceTimeoutRef.current = null
+      }
+      if (cameraAnimationTimeoutRef.current) {
+        clearTimeout(cameraAnimationTimeoutRef.current)
+        cameraAnimationTimeoutRef.current = null
+      }
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current)
+        timerIntervalRef.current = null
       }
     }
-  }, [activeEvent, currentEventIndex, events.length, storyId, navigate])
+  }, [activeEvent, currentEventIndex, events, navigate, onActiveEventIndexChange, onMapCameraChange])
 
-  // Cleanup audio on unmount
+  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
-      if (audioElementRef.current) {
-        audioElementRef.current.pause()
-        audioElementRef.current = null
+      if (autoAdvanceTimeoutRef.current) {
+        clearTimeout(autoAdvanceTimeoutRef.current)
+        autoAdvanceTimeoutRef.current = null
+      }
+      if (cameraAnimationTimeoutRef.current) {
+        clearTimeout(cameraAnimationTimeoutRef.current)
+        cameraAnimationTimeoutRef.current = null
+      }
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current)
+        timerIntervalRef.current = null
       }
     }
   }, [])
 
   const handleExit = () => {
-    if (audioElementRef.current) {
-      audioElementRef.current.pause()
+    if (autoAdvanceTimeoutRef.current) {
+      clearTimeout(autoAdvanceTimeoutRef.current)
+      autoAdvanceTimeoutRef.current = null
     }
-    navigate(`/view-story/${storyId}`)
+    if (cameraAnimationTimeoutRef.current) {
+      clearTimeout(cameraAnimationTimeoutRef.current)
+      cameraAnimationTimeoutRef.current = null
+    }
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current)
+      timerIntervalRef.current = null
+    }
+    navigate('/')
   }
 
   if (loading) {
     return (
-      <div className="cinema-view-loading">
-        <div className="cinema-view-loading-content">
+      <div className="view-story-view" dir="rtl">
+        <div className="empty-state">
           <p>Loading story...</p>
         </div>
       </div>
@@ -193,10 +361,10 @@ function CinemaView({ onEventsChange, onActiveEventIndexChange, onMapCameraChang
 
   if (!activeEvent) {
     return (
-      <div className="cinema-view-loading">
-        <div className="cinema-view-loading-content">
+      <div className="view-story-view" dir="rtl">
+        <div className="empty-state">
           <p>No events yet.</p>
-          {storyTitle ? <p className="cinema-view-story-name">{storyTitle}</p> : null}
+          {storyTitle ? <p className="view-story-story-name">{storyTitle}</p> : null}
           <button type="button" className="cinema-view-exit-btn" onClick={handleExit}>
             Exit Cinema Mode
           </button>
@@ -206,50 +374,148 @@ function CinemaView({ onEventsChange, onActiveEventIndexChange, onMapCameraChang
   }
 
   return (
-    <div className="cinema-view" dir="rtl">
-      <div className="cinema-view-content">
-        <button
-          type="button"
-          className="cinema-view-close"
-          onClick={handleExit}
-          aria-label="Exit Cinema Mode"
-        >
-          ×
-        </button>
-        
-        <div className="cinema-view-event">
-          <h2 className="cinema-view-title">{eventTitle || 'שם האירוע'}</h2>
-          {!isSpecialEvent && (
-            <div className="cinema-view-date">{formattedDate || 'תאריך מלא'}</div>
-          )}
-          {media.oldUrl && (
-            <figure className="cinema-view-media">
-              <img className="cinema-view-image" src={media.oldUrl} alt="" />
-              {media.caption && (
-                <figcaption className="cinema-view-caption">{media.caption}</figcaption>
-              )}
-            </figure>
-          )}
-          <div className="cinema-view-text">{eventText || 'טקסט מלא על האירוע'}</div>
-          {hasAudio(activeEvent) && (
-            <div className="cinema-view-audio-indicator">
-              {isPlaying ? '🔊 Playing...' : '🔇 Ready'}
-            </div>
-          )}
+    <div className="view-story-view cinema-view-overlay" dir="rtl">
+      {/* Fixed timeline at top */}
+      {events.length > 0 ? (
+        <div className="view-story-timeline-fixed">
+          <EventTimeline events={events} currentEventIndex={currentEventIndex} />
         </div>
-        
-        <div className="cinema-view-progress">
-          <div className="cinema-view-progress-bar">
-            <div 
-              className="cinema-view-progress-fill"
-              style={{ 
-                width: `${((currentEventIndex + 1) / events.length) * 100}%` 
-              }}
-            />
-          </div>
-          <div className="cinema-view-progress-text">
-            {currentEventIndex + 1} / {events.length}
-          </div>
+      ) : null}
+
+      {/* Header with home button */}
+      <header className="app-header view-story-header">
+        <div className="header-top-row">
+          <button type="button" className="back-btn" onClick={handleExit} title="Home">
+            <span aria-label="Home" role="img" style={{ marginRight: '0.4em' }}>←</span>Home
+          </button>
+        </div>
+      </header>
+
+      {/* Content area */}
+      <div className="view-story-content">
+        <article className="view-story-card" aria-label="Story event">
+          <h2 className="view-story-title">{eventTitle || 'שם האירוע'}</h2>
+          {!isSpecialEvent ? (
+            <div className="view-story-date">{formattedDate || 'תאריך מלא'}</div>
+          ) : null}
+
+          {isSpecialEvent ? (
+            <>
+              <div className="view-story-text">{eventText || 'טקסט מלא על האירוע'}</div>
+              {media.oldUrl ? (
+                <figure className="view-story-media">
+                  {media.newUrl ? (
+                    <div
+                      ref={imageComparison.compareFrameRef}
+                      className="view-story-image-frame view-story-compare"
+                    >
+                      <img className="view-story-image" src={media.oldUrl} alt="" />
+                      <div
+                        className="view-story-compare-new"
+                        style={{ clipPath: `inset(0 0 0 ${clampPct(imageComparison.revealPct)}%)` }}
+                        aria-hidden="true"
+                      >
+                        <img className="view-story-image" src={media.newUrl} alt="" />
+                      </div>
+                      <div
+                        className="view-story-compare-divider"
+                        style={{ left: `${clampPct(imageComparison.revealPct)}%` }}
+                        aria-hidden="true"
+                      />
+                      <button
+                        type="button"
+                        className="view-story-compare-handle"
+                        style={{ left: `${imageComparison.revealPct}%` }}
+                        aria-label="Move to compare images"
+                        {...imageComparison.handlers}
+                      >
+                        <span className="view-story-compare-handle-icon" aria-hidden="true">
+                          ↔
+                        </span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="view-story-image-frame">
+                      <img className="view-story-image" src={media.oldUrl} alt="" />
+                      <div className="view-story-image-hint" aria-hidden="true">
+                        ↔
+                      </div>
+                    </div>
+                  )}
+
+                  {media.caption ? (
+                    <figcaption className="view-story-caption">{media.caption}</figcaption>
+                  ) : null}
+                </figure>
+              ) : null}
+            </>
+          ) : (
+            <>
+              {media.oldUrl ? (
+                <figure className="view-story-media">
+                  {media.newUrl ? (
+                    <div
+                      ref={imageComparison.compareFrameRef}
+                      className="view-story-image-frame view-story-compare"
+                    >
+                      <img className="view-story-image" src={media.oldUrl} alt="" />
+                      <div
+                        className="view-story-compare-new"
+                        style={{ clipPath: `inset(0 0 0 ${clampPct(imageComparison.revealPct)}%)` }}
+                        aria-hidden="true"
+                      >
+                        <img className="view-story-image" src={media.newUrl} alt="" />
+                      </div>
+                      <div
+                        className="view-story-compare-divider"
+                        style={{ left: `${clampPct(imageComparison.revealPct)}%` }}
+                        aria-hidden="true"
+                      />
+                      <button
+                        type="button"
+                        className="view-story-compare-handle"
+                        style={{ left: `${imageComparison.revealPct}%` }}
+                        aria-label="Move to compare images"
+                        {...imageComparison.handlers}
+                      >
+                        <span className="view-story-compare-handle-icon" aria-hidden="true">
+                          ↔
+                        </span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="view-story-image-frame">
+                      <img className="view-story-image" src={media.oldUrl} alt="" />
+                      <div className="view-story-image-hint" aria-hidden="true">
+                        ↔
+                      </div>
+                    </div>
+                  )}
+
+                  {media.caption ? (
+                    <figcaption className="view-story-caption">{media.caption}</figcaption>
+                  ) : null}
+                </figure>
+              ) : null}
+
+              <div className="view-story-text">{eventText || 'טקסט מלא על האירוע'}</div>
+            </>
+          )}
+        </article>
+      </div>
+
+      {/* Timer indicator */}
+      <div className="cinema-view-progress">
+        <div className="cinema-view-timer-bar">
+          <div 
+            className="cinema-view-timer-fill"
+            style={{ 
+              width: `${Math.max(0, Math.min(100, (timeRemaining / 5000) * 100))}%` 
+            }}
+          />
+        </div>
+        <div className="cinema-view-progress-text">
+          {timeRemaining > 0 ? `${(timeRemaining / 1000).toFixed(1)}s` : '0.0s'}
         </div>
       </div>
     </div>

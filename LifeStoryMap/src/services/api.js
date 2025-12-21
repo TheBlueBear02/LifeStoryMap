@@ -19,14 +19,22 @@ async function apiRequest(url, options = {}) {
     })
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Request failed' }))
-      throw new Error(error.error || `Request failed with status ${response.status}`)
+      const errorText = await response.text()
+      let error
+      try {
+        error = JSON.parse(errorText)
+      } catch {
+        error = { error: errorText || `Request failed with status ${response.status}` }
+      }
+      const errorMessage = error.error || `Request failed with status ${response.status}`
+      console.error(`API request failed for ${url}:`, errorMessage, 'Response:', errorText)
+      throw new Error(errorMessage)
     }
 
     return response
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('API request failed:', error)
+    console.error('API request failed:', url, error)
     throw error
   }
 }
