@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import fs from 'fs'
 import path from 'path'
@@ -9,21 +9,29 @@ const __dirname = path.dirname(__filename)
 
 const eventsFilePath = path.resolve(__dirname, '../data/stories/events/events.json')
 const imagesDir = path.resolve(__dirname, '../data/stories/images')
+const audioDir = path.resolve(__dirname, '../data/stories/audio')
 const storiesFilePath = path.resolve(__dirname, '../data/stories/stories.json')
 const storiesDataDir = path.resolve(__dirname, '../data/stories')
 const exampleStoriesFilePath = path.resolve(__dirname, '../data/stories/example-stories.json')
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [
-    react(),
-    {
-      name: 'events-and-upload-api',
-      configureServer(server) {
-        // Ensure images directory exists
-        fs.promises.mkdir(imagesDir, { recursive: true }).catch(() => {})
-        // Ensure stories directory exists
-        fs.promises.mkdir(storiesDataDir, { recursive: true }).catch(() => {})
+export default defineConfig(({ mode }) => {
+  // Load env file from the directory containing vite.config.js
+  // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
+  const env = loadEnv(mode, __dirname, '')
+  
+  return {
+    plugins: [
+      react(),
+      {
+        name: 'events-and-upload-api',
+        configureServer(server) {
+          // Ensure images directory exists
+          fs.promises.mkdir(imagesDir, { recursive: true }).catch(() => {})
+          // Ensure audio directory exists
+          fs.promises.mkdir(audioDir, { recursive: true }).catch(() => {})
+          // Ensure stories directory exists
+          fs.promises.mkdir(storiesDataDir, { recursive: true }).catch(() => {})
 
         // Stories CRUD API
         server.middlewares.use('/api/stories', async (req, res, next) => {
@@ -307,6 +315,164 @@ export default defineConfig({
               console.error('Error deleting story', err)
               res.statusCode = 500
               res.end(JSON.stringify({ error: 'Failed to delete story' }))
+            }
+            return
+          }
+
+          // POST /api/stories/:id/generate-audio - generate audio files for events
+          if (req.method === 'POST' && storyId && action === 'generate-audio') {
+            try {
+              const json = await fs.promises.readFile(storiesFilePath, 'utf8')
+              const stories = JSON.parse(json)
+              const story = stories.find((s) => s.id === storyId)
+              if (!story) {
+                res.statusCode = 404
+                res.end(JSON.stringify({ error: 'Story not found' }))
+                return
+              }
+
+              const eventsFile = path.resolve(storiesDataDir, story.eventsFilePath)
+              const eventsJson = await fs.promises.readFile(eventsFile, 'utf8')
+              const events = JSON.parse(eventsJson)
+
+              // Get token from env (loaded via loadEnv)
+              const elevenLabsToken = env.ELEVENLABS_AUDIO_TOEKN || process.env.ELEVENLABS_AUDIO_TOEKN
+              if (!elevenLabsToken) {
+                console.error('ELEVENLABS_AUDIO_TOEKN not found in environment variables')
+                res.statusCode = 500
+                res.end(JSON.stringify({ error: 'ElevenLabs API token not configured. Please check your .env file.' }))
+                return
+              }
+
+              // Helper function to strip HTML tags and decode HTML entities
+              const stripHtml = (html) => {
+                if (!html) return ''
+                // Decode common HTML entities
+                let text = html
+                  .replace(/&nbsp;/g, ' ')
+                  .replace(/&amp;/g, '&')
+                  .replace(/&lt;/g, '<')
+                  .replace(/&gt;/g, '>')
+                  .replace(/&quot;/g, '"')
+                  .replace(/&#39;/g, "'")
+                  .replace(/&apos;/g, "'")
+                // Strip HTML tags
+                text = text.replace(/<[^>]*>/g, '')
+                // Decode numeric entities (e.g., &#8217;)
+                text = text.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec))
+                // Decode hex entities (e.g., &#x27;)
+                text = text.replace(/&#x([a-f\d]+);/gi, (match, hex) => String.fromCharCode(parseInt(hex, 16)))
+                // Clean up whitespace
+                return text.replace(/\s+/g, ' ').trim()
+              }
+
+              const defaultText = 'טקסט מלא על האירוע'
+              const generatedFiles = []
+              let hasUpdates = false
+
+              // Process each event
+              for (const event of events) {
+                // Skip Opening and Closing events
+                if (event?.eventType === 'Opening' || event?.eventType === 'Closing') {
+                  continue
+                }
+
+                const textHtml = event?.content?.textHtml || ''
+                const plainText = stripHtml(textHtml)
+                const trimmedText = plainText.trim()
+
+                // Skip if text is empty, default text, or already has audio
+                if (!trimmedText || trimmedText === defaultText || event?.content?.audioUrl) {
+                  continue
+                }
+
+                // ElevenLabs has a character limit (typically 5000 characters)
+                // Truncate if necessary and log a warning
+                const maxLength = 5000
+                let textToSend = trimmedText
+                if (textToSend.length > maxLength) {
+                  console.warn(`Event ${event.eventId} text exceeds ${maxLength} characters, truncating...`)
+                  textToSend = textToSend.substring(0, maxLength)
+                }
+
+                try {
+                  // Call ElevenLabs API
+                  // Using a Hebrew-compatible voice ID (you may want to adjust this)
+                  const voiceId = '21m00Tcm4TlvDq8ikWAM' // Default voice, supports multiple languages
+                  const elevenLabsUrl = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`
+
+                  const response = await fetch(elevenLabsUrl, {
+                    method: 'POST',
+                    headers: {
+                      'Accept': 'audio/mpeg',
+                      'Content-Type': 'application/json',
+                      'xi-api-key': elevenLabsToken,
+                    },
+                    body: JSON.stringify({
+                      text: textToSend,
+                      model_id: 'eleven_multilingual_v2',
+                      voice_settings: {
+                        stability: 0.5,
+                        similarity_boost: 0.75,
+                      },
+                    }),
+                  })
+
+                  if (!response.ok) {
+                    const errorText = await response.text()
+                    let errorMessage = `ElevenLabs API error for event ${event.eventId}`
+                    try {
+                      const errorJson = JSON.parse(errorText)
+                      errorMessage += `: ${errorJson.detail?.message || errorJson.detail || errorText}`
+                    } catch {
+                      errorMessage += `: ${errorText}`
+                    }
+                    console.error(errorMessage)
+                    console.error(`Text that failed: "${textToSend.substring(0, 100)}${textToSend.length > 100 ? '...' : ''}"`)
+                    continue
+                  }
+
+                  // Save audio file
+                  const audioBuffer = await response.arrayBuffer()
+                  const timestamp = Date.now()
+                  const randomStr = Math.random().toString(36).slice(2, 8)
+                  const audioFileName = `${event.eventId}-${timestamp}-${randomStr}.mp3`
+                  const audioFilePath = path.join(audioDir, audioFileName)
+                  
+                  await fs.promises.writeFile(audioFilePath, Buffer.from(audioBuffer))
+
+                  // Update event with audio URL
+                  if (!event.content) {
+                    event.content = {}
+                  }
+                  event.content.audioUrl = `/stories/audio/${audioFileName}`
+                  hasUpdates = true
+                  generatedFiles.push({
+                    eventId: event.eventId,
+                    audioUrl: event.content.audioUrl,
+                  })
+                } catch (err) {
+                  console.error(`Error generating audio for event ${event.eventId}:`, err)
+                  // Continue with next event
+                }
+              }
+
+              // Save updated events if any changes were made
+              if (hasUpdates) {
+                const formatted = JSON.stringify(events, null, 2)
+                await fs.promises.writeFile(eventsFile, formatted, 'utf8')
+              }
+
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ 
+                ok: true, 
+                generated: generatedFiles.length,
+                files: generatedFiles,
+              }))
+            } catch (err) {
+              console.error('Error generating audio', err)
+              res.statusCode = 500
+              res.end(JSON.stringify({ error: 'Failed to generate audio' }))
             }
             return
           }
@@ -605,7 +771,37 @@ export default defineConfig({
             res.end('Server error')
           }
         })
+
+        // Serve saved audio files
+        server.middlewares.use('/stories/audio', async (req, res, next) => {
+          if (req.method !== 'GET') {
+            next()
+            return
+          }
+
+          try {
+            const urlPath = req.url || '/'
+            const relative = urlPath.replace(/^\/+/, '')
+            const filePath = path.join(audioDir, relative.replace(/^stories\/audio\/?/, ''))
+
+            // Set content type for audio files
+            res.setHeader('Content-Type', 'audio/mpeg')
+            res.setHeader('Accept-Ranges', 'bytes')
+
+            const stream = fs.createReadStream(filePath)
+            stream.on('error', () => {
+              res.statusCode = 404
+              res.end('Not found')
+            })
+            stream.pipe(res)
+          } catch (err) {
+            console.error('Error serving audio', err)
+            res.statusCode = 500
+            res.end('Server error')
+          }
+        })
       },
     },
   ],
+  }
 })

@@ -89,8 +89,6 @@ function ViewStoryView({ onEventsChange, onActiveEventIndexChange, onMapCameraCh
 
   const clampPct = (n) => Math.max(0, Math.min(100, n))
 
-
-
   const activeEvent = events[currentEventIndex] || null
   const isSpecialEvent = activeEvent?.eventType === 'Opening' || activeEvent?.eventType === 'Closing'
   const formattedDate = useMemo(() => {

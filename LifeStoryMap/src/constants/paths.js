@@ -4,6 +4,7 @@ export const ROUTES = {
   CREATE_STORY: '/create-story',
   EDIT_STORY: (storyId) => `/edit-story/${storyId}`,
   VIEW_STORY: (storyId) => `/view-story/${storyId}`,
+  CINEMA_STORY: (storyId) => `/cinema-story/${storyId}`,
 }
 
 // API endpoint paths
@@ -11,6 +12,7 @@ export const API_PATHS = {
   STORIES: '/api/stories',
   STORY: (storyId) => `/api/stories/${storyId}`,
   STORY_EVENTS: (storyId) => `/api/stories/${storyId}/events`,
+  GENERATE_AUDIO: (storyId) => `/api/stories/${storyId}/generate-audio`,
   EXAMPLE_STORIES: '/api/example-stories',
   EXAMPLE_STORY: (storyId) => `/api/example-stories/${storyId}`,
   EXAMPLE_STORY_EVENTS: (storyId) => `/api/example-stories/${storyId}/events`,

@@ -50,6 +50,9 @@
   /* In RTL, flex-start can place items on the right; force physical left for the back button. */
   direction: ltr;
   justify-content: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
 .view-story-header .back-btn {
@@ -331,4 +334,47 @@
 
 .view-story-compare-handle:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
+}
+
+/* Header actions */
+.view-story-header-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.generate-audio-btn,
+.cinema-mode-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(209, 213, 219, 0.95);
+  background: rgba(255, 255, 255, 0.9);
+  color: #111827;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.generate-audio-btn:hover:not(:disabled),
+.cinema-mode-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.generate-audio-btn:disabled,
+.cinema-mode-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cinema-mode-btn {
+  background: linear-gradient(90deg, #2563eb, #4f46e5);
+  color: #ffffff;
+  border-color: rgba(37, 99, 235, 0.4);
+}
+
+.cinema-mode-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
 }

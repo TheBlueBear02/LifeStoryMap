@@ -4,6 +4,9 @@ import logoImage from '../assets/Logos/logo no name no bg.png'
 import { getStories, createStory, updateStory, deleteStory } from '../services/storyService.js'
 import { ROUTES, API_PATHS } from '../constants/paths.js'
 import { get } from '../services/api.js'
+import { getEvents } from '../services/eventService.js'
+import { hasAudio } from '../services/audioService.js'
+import { generateAudio } from '../services/audioService.js'
 
 function HomeView() {
   const [stories, setStories] = useState([])
@@ -14,6 +17,9 @@ function HomeView() {
   const [openMenuId, setOpenMenuId] = useState(null)
   const [editingStoryId, setEditingStoryId] = useState(null)
   const [editingStoryName, setEditingStoryName] = useState('')
+  const [presentationType, setPresentationType] = useState({}) // { storyId: 'Presentation' | 'Cinema' }
+  const [storyAudioStatus, setStoryAudioStatus] = useState({}) // { storyId: boolean }
+  const [generatingAudioFor, setGeneratingAudioFor] = useState(null)
   const menuRefs = useRef({})
   const navigate = useNavigate()
 
@@ -24,8 +30,37 @@ function HomeView() {
           getStories(),
           get(API_PATHS.EXAMPLE_STORIES).catch(() => []),
         ])
+        const exampleStoriesArray = Array.isArray(examples) ? examples : []
         setStories(data)
-        setExampleStories(Array.isArray(examples) ? examples : [])
+        setExampleStories(exampleStoriesArray)
+        
+        // Initialize presentation type for all stories (regular + examples)
+        const initialPresentationType = {}
+        data.forEach((story) => {
+          initialPresentationType[story.id] = 'Presentation'
+        })
+        exampleStoriesArray.forEach((story) => {
+          initialPresentationType[story.id] = 'Presentation'
+        })
+        setPresentationType(initialPresentationType)
+        
+        // Check audio status for all stories (regular + examples)
+        const allStories = [...data, ...exampleStoriesArray]
+        const audioStatusPromises = allStories.map(async (story) => {
+          try {
+            const events = await getEvents(story.id)
+            const hasAudioFiles = Array.isArray(events) && events.some((event) => hasAudio(event))
+            return { storyId: story.id, hasAudio: hasAudioFiles }
+          } catch {
+            return { storyId: story.id, hasAudio: false }
+          }
+        })
+        const audioStatuses = await Promise.all(audioStatusPromises)
+        const audioStatusMap = {}
+        audioStatuses.forEach(({ storyId, hasAudio: hasAudioFiles }) => {
+          audioStatusMap[storyId] = hasAudioFiles
+        })
+        setStoryAudioStatus(audioStatusMap)
       } catch (err) {
         console.error(err)
         setStories([])
@@ -129,6 +164,64 @@ function HomeView() {
     }
   }
 
+  const handlePresentationTypeToggle = (storyId) => {
+    setPresentationType((prev) => ({
+      ...prev,
+      [storyId]: prev[storyId] === 'Presentation' ? 'Cinema' : 'Presentation',
+    }))
+  }
+
+  const handleGenerateVideo = async (storyId, e) => {
+    e.preventDefault()
+    if (generatingAudioFor === storyId) return
+    
+    if (!window.confirm('This will generate audio files for all events with custom text. This may take a few moments. Continue?')) {
+      return
+    }
+    
+    setGeneratingAudioFor(storyId)
+    try {
+      const result = await generateAudio(storyId)
+      if (result.generated > 0) {
+        alert(`Successfully generated ${result.generated} audio file(s).`)
+        // Reload events to check audio status
+        try {
+          const events = await getEvents(storyId)
+          const hasAudioFiles = Array.isArray(events) && events.some((event) => hasAudio(event))
+          setStoryAudioStatus((prev) => ({
+            ...prev,
+            [storyId]: hasAudioFiles,
+          }))
+        } catch (err) {
+          console.error('Failed to reload events:', err)
+          // Still set to true as fallback since generation succeeded
+          setStoryAudioStatus((prev) => ({
+            ...prev,
+            [storyId]: true,
+          }))
+        }
+      } else {
+        alert('No audio files were generated. All events may already have audio or no events have custom text.')
+        // Check if audio already exists
+        try {
+          const events = await getEvents(storyId)
+          const hasAudioFiles = Array.isArray(events) && events.some((event) => hasAudio(event))
+          setStoryAudioStatus((prev) => ({
+            ...prev,
+            [storyId]: hasAudioFiles,
+          }))
+        } catch (err) {
+          console.error('Failed to reload events:', err)
+        }
+      }
+    } catch (err) {
+      console.error('Failed to generate audio:', err)
+      alert('Failed to generate audio. Please check the console for details and try again.')
+    } finally {
+      setGeneratingAudioFor(null)
+    }
+  }
+
   return (
     <div className="home-view">
       <div className="home-content">
@@ -228,13 +321,45 @@ function HomeView() {
                         </div>
                       </div>
                     </div>
+                    <div className="story-card-presentation-toggle">
+                      <div className="presentation-type-toggle">
+                        <button
+                          type="button"
+                          className={`toggle-btn ${(presentationType[story.id] || 'Presentation') === 'Presentation' ? 'active' : ''}`}
+                          onClick={() => handlePresentationTypeToggle(story.id)}
+                        >
+                          Presentation
+                        </button>
+                        <button
+                          type="button"
+                          className={`toggle-btn ${(presentationType[story.id] || 'Presentation') === 'Cinema' ? 'active' : ''}`}
+                          onClick={() => handlePresentationTypeToggle(story.id)}
+                        >
+                          Cinema
+                        </button>
+                      </div>
+                    </div>
                     <div className="story-card-actions">
-                      <Link
-                        to={ROUTES.VIEW_STORY(story.id)}
-                        className="primary-btn story-view-btn"
-                      >
-                        View
-                      </Link>
+                      {(presentationType[story.id] || 'Presentation') === 'Cinema' && 
+                       !(storyAudioStatus[story.id] || false) ? (
+                        <button
+                          type="button"
+                          className="primary-btn story-view-btn"
+                          onClick={(e) => handleGenerateVideo(story.id, e)}
+                          disabled={generatingAudioFor === story.id}
+                        >
+                          {generatingAudioFor === story.id ? 'Generating...' : 'Generate Video'}
+                        </button>
+                      ) : (
+                        <Link
+                          to={(presentationType[story.id] || 'Presentation') === 'Cinema' 
+                            ? ROUTES.CINEMA_STORY(story.id) 
+                            : ROUTES.VIEW_STORY(story.id)}
+                          className="primary-btn story-view-btn"
+                        >
+                          View
+                        </Link>
+                      )}
                       <Link
                         to={ROUTES.EDIT_STORY(story.id)}
                         className="secondary-btn story-edit-btn"
@@ -296,40 +421,72 @@ function HomeView() {
               <p className="max-stories-message">Maximum of {MAX_STORIES} stories reached</p>
             )}
 
-            {/* Bottom "folder" section */}
             {Array.isArray(exampleStories) && exampleStories.length > 0 && (
-              <div className="home-bottom-section">
-                <details className="examples-folder">
-                  <summary className="examples-folder-summary">
-                    <span className="examples-folder-title">Example Stories</span>
-                    <span className="examples-folder-count">{exampleStories.length}</span>
-                  </summary>
-                  <div className="examples-folder-content stories-list">
-                    {exampleStories.map((story) => (
-                      <div key={story.id} className="story-card">
-                        <div className="story-card-header">
-                          <div className="story-name-container">
-                            <h3 className="story-name">{story.name}</h3>
-                          </div>
-                          <div className="story-header-actions">
-                            <div className="story-badge">
-                              <span className="badge draft">Example</span>
-                            </div>
-                          </div>
+              <details className="examples-folder" style={{ marginTop: '1.25rem' }}>
+                <summary className="examples-folder-summary">
+                  <span className="examples-folder-title">Example Stories</span>
+                  <span className="examples-folder-count">{exampleStories.length}</span>
+                </summary>
+                <div className="examples-folder-content stories-list">
+                  {exampleStories.map((story) => (
+                    <div key={story.id} className="story-card">
+                      <div className="story-card-header">
+                        <div className="story-name-container">
+                          <h3 className="story-name">{story.name}</h3>
                         </div>
-                        <div className="story-card-actions">
-                          <Link to={ROUTES.VIEW_STORY(story.id)} className="primary-btn story-view-btn">
-                            View
-                          </Link>
-                          <Link to={ROUTES.EDIT_STORY(story.id)} className="secondary-btn story-edit-btn">
-                            Edit Story
-                          </Link>
+                        <div className="story-header-actions">
+                          <div className="story-badge">
+                            <span className="badge draft">Example</span>
+                          </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </details>
-              </div>
+                      <div className="story-card-presentation-toggle">
+                        <div className="presentation-type-toggle">
+                          <button
+                            type="button"
+                            className={`toggle-btn ${(presentationType[story.id] || 'Presentation') === 'Presentation' ? 'active' : ''}`}
+                            onClick={() => handlePresentationTypeToggle(story.id)}
+                          >
+                            Presentation
+                          </button>
+                          <button
+                            type="button"
+                            className={`toggle-btn ${(presentationType[story.id] || 'Presentation') === 'Cinema' ? 'active' : ''}`}
+                            onClick={() => handlePresentationTypeToggle(story.id)}
+                          >
+                            Cinema
+                          </button>
+                        </div>
+                      </div>
+                      <div className="story-card-actions">
+                        {(presentationType[story.id] || 'Presentation') === 'Cinema' && 
+                         !(storyAudioStatus[story.id] || false) ? (
+                          <button
+                            type="button"
+                            className="primary-btn story-view-btn"
+                            onClick={(e) => handleGenerateVideo(story.id, e)}
+                            disabled={generatingAudioFor === story.id}
+                          >
+                            {generatingAudioFor === story.id ? 'Generating...' : 'Generate Video'}
+                          </button>
+                        ) : (
+                          <Link
+                            to={(presentationType[story.id] || 'Presentation') === 'Cinema' 
+                              ? ROUTES.CINEMA_STORY(story.id) 
+                              : ROUTES.VIEW_STORY(story.id)}
+                            className="primary-btn story-view-btn"
+                          >
+                            View
+                          </Link>
+                        )}
+                        <Link to={ROUTES.EDIT_STORY(story.id)} className="secondary-btn story-edit-btn">
+                          Edit Story
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </details>
             )}
           </>
         )}

@@ -4,6 +4,7 @@ import './App.css'
 import HomeView from './views/HomeView.jsx'
 import EditStoryView from './views/EditStoryView.jsx'
 import ViewStoryView from './views/ViewStoryView.jsx'
+import CinemaView from './views/CinemaView.jsx'
 import MapView from './components/MapView.jsx'
 import { get } from './services/api.js'
 import { API_PATHS } from './constants/paths.js'
@@ -12,11 +13,12 @@ function App() {
   const location = useLocation()
   const isEditMode = location.pathname.startsWith('/edit-story/') || location.pathname.startsWith('/create-story')
   const isViewMode = location.pathname.startsWith('/view-story/')
-  const isStoryMode = isEditMode || isViewMode
+  const isCinemaMode = location.pathname.startsWith('/cinema-story/')
+  const isStoryMode = isEditMode || isViewMode || isCinemaMode
   const isHome = location.pathname === '/'
   
   // Extract storyId from pathname
-  const storyIdMatch = location.pathname.match(/\/(edit-story|view-story)\/([^/]+)/)
+  const storyIdMatch = location.pathname.match(/\/(edit-story|view-story|cinema-story)\/([^/]+)/)
   const currentStoryId = storyIdMatch ? storyIdMatch[2] : (location.pathname === '/create-story' ? 'new' : null)
   
   const [mapCamera, setMapCamera] = useState({
@@ -239,6 +241,16 @@ function App() {
             path="/view-story/:storyId"
             element={(
               <ViewStoryView
+                onEventsChange={setEvents}
+                onActiveEventIndexChange={setExpandedEventIndex}
+                onMapCameraChange={setMapCamera}
+              />
+            )}
+          />
+          <Route
+            path="/cinema-story/:storyId"
+            element={(
+              <CinemaView
                 onEventsChange={setEvents}
                 onActiveEventIndexChange={setExpandedEventIndex}
                 onMapCameraChange={setMapCamera}
