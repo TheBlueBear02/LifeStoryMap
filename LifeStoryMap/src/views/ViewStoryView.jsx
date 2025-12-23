@@ -105,6 +105,11 @@ function ViewStoryView({ onEventsChange, onActiveEventIndexChange, onMapCameraCh
   const eventTitle = typeof activeEvent?.title === 'string' ? activeEvent.title.trim() : ''
   const eventTextRaw = typeof activeEvent?.content?.textHtml === 'string' ? activeEvent.content.textHtml : ''
   const eventText = eventTextRaw.trim()
+  const textContent = (
+    <div className="view-story-scroll-area">
+      <div className="view-story-text">{eventText || 'טקסט מלא על האירוע'}</div>
+    </div>
+  )
   const canGoPrev = currentEventIndex > 0
   const canGoNext = Array.isArray(events) && currentEventIndex < events.length - 1
 
@@ -241,7 +246,7 @@ function ViewStoryView({ onEventsChange, onActiveEventIndexChange, onMapCameraCh
 
             {isSpecialEvent ? (
               <>
-                <div className="view-story-text">{eventText || 'טקסט מלא על האירוע'}</div>
+                {textContent}
                 {media.oldUrl ? (
                   <figure className="view-story-media">
                     {media.newUrl ? (
@@ -338,7 +343,7 @@ function ViewStoryView({ onEventsChange, onActiveEventIndexChange, onMapCameraCh
                   </figure>
                 ) : null}
 
-                <div className="view-story-text">{eventText || 'טקסט מלא על האירוע'}</div>
+              {textContent}
               </>
             )}
           </article>

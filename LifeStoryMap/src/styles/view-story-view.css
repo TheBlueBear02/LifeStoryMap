@@ -20,7 +20,6 @@
   align-items: center;
   gap: .5rem;
   flex: 1;
-  padding-bottom: 1rem;
 }
 
 /* Timeline for desktop - normal flow positioning */
@@ -81,8 +80,9 @@
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
   backdrop-filter: blur(8px);
   box-sizing: border-box;
-  overflow-y: auto;
-  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   direction: ltr; /* Force scrollbar to right side */
   scrollbar-width: thin; /* Firefox: narrow scrollbar */
   scrollbar-color: rgba(156, 163, 175, 0.6) transparent; /* Firefox: thumb and track colors */
@@ -95,15 +95,6 @@
 
 .view-story-card::-webkit-scrollbar-track {
   background: transparent;
-}
-
-.view-story-card::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.6);
-  border-radius: 3px;
-}
-
-.view-story-card::-webkit-scrollbar-thumb:hover {
-  background: rgba(107, 114, 128, 0.8);
 }
 
 .view-story-title {
@@ -167,10 +158,9 @@
 }
 
 .view-story-text {
-  margin-top: 0.9rem;
   margin-left: 5px;
   margin-right: 5px;
-  font-size: 1rem;
+  font-size: 1.2rem;
   line-height: 1.85;
   color: #111827;
   white-space: pre-wrap;
@@ -178,6 +168,32 @@
   text-align: justify;
   text-align-last: right;
   text-justify: inter-word;
+}
+
+.view-story-scroll-area {
+  flex: 1;
+  min-height: 120px;
+  margin-top: 0.9rem;
+  overflow-y: auto;
+  padding-right: 0.35rem;
+  scroll-padding-bottom: 1.5rem;
+}
+
+.view-story-scroll-area::-webkit-scrollbar {
+  width: 6px; /* Narrow scrollbar */
+}
+
+.view-story-scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.view-story-scroll-area::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.6);
+  border-radius: 3px;
+}
+
+.view-story-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.8);
 }
 
 .view-story-bottom-nav {

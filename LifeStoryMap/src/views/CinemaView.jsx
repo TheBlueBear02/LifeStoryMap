@@ -9,6 +9,7 @@ import { calculateDistanceKm } from '../utils/mapUtils.js'
 import '../styles/view-story-view.css'
 import '../styles/view-story-view-mobile.css'
 import '../styles/cinema-view.css'
+import '../styles/cinema-view-mobile.css'
 
 function CinemaView({ onEventsChange, onActiveEventIndexChange, onMapCameraChange }) {
   const navigate = useNavigate()
@@ -243,6 +244,12 @@ function CinemaView({ onEventsChange, onActiveEventIndexChange, onMapCameraChang
 
   const clampPct = (n) => Math.max(0, Math.min(100, n))
 
+  const textContent = (
+    <div className="view-story-scroll-area">
+      <div className="view-story-text">{eventText || 'טקסט מלא על האירוע'}</div>
+    </div>
+  )
+
   // Handle camera changes and start timer after animation completes
   useEffect(() => {
     if (!activeEvent) {
@@ -385,8 +392,8 @@ function CinemaView({ onEventsChange, onActiveEventIndexChange, onMapCameraChang
       {/* Header with home button */}
       <header className="app-header view-story-header">
         <div className="header-top-row">
-          <button type="button" className="back-btn" onClick={handleExit} title="Home">
-            <span aria-label="Home" role="img" style={{ marginRight: '0.4em' }}>←</span>Home
+          <button type="button" className="cinema-view-exit-btn" onClick={handleExit} title="Home">
+            
           </button>
         </div>
       </header>
@@ -401,7 +408,7 @@ function CinemaView({ onEventsChange, onActiveEventIndexChange, onMapCameraChang
 
           {isSpecialEvent ? (
             <>
-              <div className="view-story-text">{eventText || 'טקסט מלא על האירוע'}</div>
+              {textContent}
               {media.oldUrl ? (
                 <figure className="view-story-media">
                   {media.newUrl ? (
@@ -498,25 +505,25 @@ function CinemaView({ onEventsChange, onActiveEventIndexChange, onMapCameraChang
                 </figure>
               ) : null}
 
-              <div className="view-story-text">{eventText || 'טקסט מלא על האירוע'}</div>
+              {textContent}
             </>
           )}
-        </article>
-      </div>
 
-      {/* Timer indicator */}
-      <div className="cinema-view-progress">
-        <div className="cinema-view-timer-bar">
-          <div 
-            className="cinema-view-timer-fill"
-            style={{ 
-              width: `${Math.max(0, Math.min(100, (timeRemaining / 5000) * 100))}%` 
-            }}
-          />
-        </div>
-        <div className="cinema-view-progress-text">
-          {timeRemaining > 0 ? `${(timeRemaining / 1000).toFixed(1)}s` : '0.0s'}
-        </div>
+          {/* Timer indicator - anchored inside the card */}
+          <div className="cinema-view-progress">
+            <div className="cinema-view-timer-bar">
+              <div
+                className="cinema-view-timer-fill"
+                style={{
+                  width: `${Math.max(0, Math.min(100, (timeRemaining / 5000) * 100))}%`,
+                }}
+              />
+            </div>
+            <div className="cinema-view-progress-text">
+              {timeRemaining > 0 ? `${(timeRemaining / 1000).toFixed(1)}s` : '0.0s'}
+            </div>
+          </div>
+        </article>
       </div>
     </div>
   )

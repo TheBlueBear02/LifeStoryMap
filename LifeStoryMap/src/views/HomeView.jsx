@@ -259,7 +259,7 @@ function HomeView() {
                           className={`toggle-btn ${(presentationType[story.id] || 'Presentation') === 'Presentation' ? 'active' : ''}`}
                           onClick={() => handlePresentationTypeToggle(story.id)}
                         >
-                          <span className="toggle-icon">🎬</span> Guided View
+                          <span className="toggle-icon">🎬</span> Presentation
                         </button>
                         <button
                           type="button"
@@ -366,7 +366,7 @@ function HomeView() {
                             className={`toggle-btn ${(presentationType[story.id] || 'Presentation') === 'Presentation' ? 'active' : ''}`}
                             onClick={() => handlePresentationTypeToggle(story.id)}
                           >
-                            <span className="toggle-icon">🎬</span> Guided View
+                            <span className="toggle-icon">🎬</span> Presentation
                           </button>
                           <button
                             type="button"

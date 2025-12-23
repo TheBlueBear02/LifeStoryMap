@@ -1,21 +1,31 @@
 /* Cinema View - Uses ViewStoryView layout with auto-advance */
+/* When cinema view is active, clear the sidebar parchment background */
+.app-root:has(.cinema-view-overlay) {
+  background: transparent;
+  border-left: none;
+  box-shadow: none;
+  /* Hide scrollbars in cinema mode sidebar */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.app-root:has(.cinema-view-overlay)::-webkit-scrollbar {
+  display: none;
+}
+
 .cinema-view-progress {
   position: sticky;
-  bottom: calc(-1 * 4rem);
-  width: calc(100% + var(--app-root-pad-left, 1.5rem) + var(--app-root-pad-right, 17px));
+  bottom: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.75rem 0 calc(0.75rem + env(safe-area-inset-bottom, 0px)) 0;
-  margin-top: auto;
-  margin-left: calc(-1 * var(--app-root-pad-left, 1.5rem));
-  margin-right: calc(-1 * var(--app-root-pad-right, 17px));
-  margin-bottom: calc(-1 * 4rem);
-  z-index: 10;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
-  align-self: stretch;
+  gap: 0.4rem;
+  padding: 0.75rem 0 0.4rem;
+  margin-top: 1rem;
+  background:transparent;
+
+  z-index: 2;
+  align-items: center;
 }
 
 .cinema-view-timer-bar {
@@ -44,11 +54,21 @@
 }
 
 .cinema-view-exit-btn {
-  margin-top: 2rem;
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 600;
-  border-radius: 0.5rem;
+  position: fixed;
+  top: calc(1rem + env(safe-area-inset-top, 0px));
+  left: 1rem;
+  margin-top: 0;
+  z-index: 999;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
   border: 1px solid rgba(209, 213, 219, 0.95);
   background: rgba(255, 255, 255, 0.9);
   color: #111827;
@@ -57,19 +77,12 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+.cinema-view-exit-btn::before {
+  content: "×";
+  line-height: 1;
+}
+
 .cinema-view-exit-btn:hover {
   background: rgba(255, 255, 255, 1);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
-
-/* Mobile adjustments */
-@media (max-width: 768px) {
-  .cinema-view-progress {
-    padding: 0.5rem 0 calc(0.5rem + env(safe-area-inset-bottom, 0px)) 0;
-  }
-
-  .cinema-view-progress-text {
-    font-size: 0.85rem;
-  }
-}
-

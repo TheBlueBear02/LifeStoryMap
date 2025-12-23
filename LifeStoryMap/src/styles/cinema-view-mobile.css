@@ -1,0 +1,16 @@
+/* Mobile-specific styles for Cinema View (max-width: 768px) */
+@media (max-width: 768px) {
+  /* Keep app background visible on mobile cinema view */
+  .app-root:has(.cinema-view-overlay) {
+    background: var(--app-root-background, #f9fafb);
+  }
+
+  .cinema-view-progress {
+    padding: 0.5rem 0 calc(0.5rem + env(safe-area-inset-bottom, 0px)) 0;
+  }
+
+  .cinema-view-progress-text {
+    font-size: 0.85rem;
+  }
+}
+
