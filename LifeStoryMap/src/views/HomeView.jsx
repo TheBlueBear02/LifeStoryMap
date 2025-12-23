@@ -259,14 +259,14 @@ function HomeView() {
                           className={`toggle-btn ${(presentationType[story.id] || 'Presentation') === 'Presentation' ? 'active' : ''}`}
                           onClick={() => handlePresentationTypeToggle(story.id)}
                         >
-                          Presentation
+                          <span className="toggle-icon">🎬</span> Guided View
                         </button>
                         <button
                           type="button"
                           className={`toggle-btn ${(presentationType[story.id] || 'Presentation') === 'Cinema' ? 'active' : ''}`}
                           onClick={() => handlePresentationTypeToggle(story.id)}
                         >
-                          Cinema
+                          <span className="toggle-icon">📽️</span> Cinema
                         </button>
                       </div>
                     </div>
@@ -366,14 +366,14 @@ function HomeView() {
                             className={`toggle-btn ${(presentationType[story.id] || 'Presentation') === 'Presentation' ? 'active' : ''}`}
                             onClick={() => handlePresentationTypeToggle(story.id)}
                           >
-                            Presentation
+                            <span className="toggle-icon">🎬</span> Guided View
                           </button>
                           <button
                             type="button"
                             className={`toggle-btn ${(presentationType[story.id] || 'Presentation') === 'Cinema' ? 'active' : ''}`}
                             onClick={() => handlePresentationTypeToggle(story.id)}
                           >
-                            Cinema
+                            <span className="toggle-icon">📽️</span> Cinema
                           </button>
                         </div>
                       </div>

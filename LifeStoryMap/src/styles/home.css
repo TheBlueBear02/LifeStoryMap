@@ -208,7 +208,11 @@
   transition: all 0.2s;
   white-space: nowrap;
   width: 50%;
-  
+}
+
+.toggle-btn:focus,
+.toggle-btn:focus-visible {
+  outline: none !important;
 }
 
 .toggle-btn:hover {
@@ -220,6 +224,10 @@
   background: white;
   color: #2563eb;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.toggle-icon {
+  margin-right: 0.4rem;
 }
 
 .story-card-actions {

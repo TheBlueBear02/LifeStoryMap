@@ -476,7 +476,7 @@ function ViewStoryView({ onEventsChange, onActiveEventIndexChange, onMapCameraCh
                   onClick={() => goToEventIndex(currentEventIndex - 1)}
                   disabled={!canGoPrev}
                 >
-                  back
+                  Previous
                 </button>
                 <button
                   type="button"
@@ -503,7 +503,7 @@ function ViewStoryView({ onEventsChange, onActiveEventIndexChange, onMapCameraCh
               onClick={() => goToEventIndex(currentEventIndex - 1)}
               disabled={!canGoPrev}
             >
-              back
+              Previous
             </button>
             <button
               type="button"
