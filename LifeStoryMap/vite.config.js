@@ -171,12 +171,16 @@ export default defineConfig(({ mode }) => {
                     return
                   }
 
-                  const { name } = JSON.parse(body || '{}')
+                  const { name, language } = JSON.parse(body || '{}')
                   if (!name || typeof name !== 'string') {
                     res.statusCode = 400
                     res.end(JSON.stringify({ error: 'Story name is required' }))
                     return
                   }
+
+                  // Validate language code (default to 'en' if not provided or invalid)
+                  const validLanguages = ['en', 'he']
+                  const storyLanguage = validLanguages.includes(language) ? language : 'en'
 
                   const newId = `story-${Date.now()}`
                   const eventsFileName = `events-${newId}.json`
@@ -223,6 +227,7 @@ export default defineConfig(({ mode }) => {
                   const newStory = {
                     id: newId,
                     name: name.trim(),
+                    language: storyLanguage,
                     eventsFilePath: `events/${eventsFileName}`,
                     dateCreated: new Date().toISOString(),
                     eventCount: 2, // Opening and Closing events
@@ -370,9 +375,32 @@ export default defineConfig(({ mode }) => {
                 return text.replace(/\s+/g, ' ').trim()
               }
 
-              const defaultText = 'טקסט מלא על האירוע'
+              // Get story language (default to 'en' if not set)
+              const storyLanguage = story.language || 'en'
+              
+              // Map language codes to ElevenLabs voice IDs
+              // Voice IDs: Rachel (multilingual), Bella (English), and others
+              const voiceMap = {
+                'en': 'EXAVITQu4vr4xnSDxMaL', // Bella - English voice
+                'he': '21m00Tcm4TlvDq8ikWAM', // Rachel - Multilingual (supports Hebrew well)
+              }
+              
+              // Select voice based on story language, fallback to English voice
+              const voiceId = voiceMap[storyLanguage] || voiceMap['en']
+              
+              // Select model based on language
+              // eleven_multilingual_v2 works well for both, but we can use eleven_turbo_v2_5 for English for faster generation
+              const modelId = storyLanguage === 'he' 
+                ? 'eleven_multilingual_v2' 
+                : 'eleven_turbo_v2_5' // Faster model for English
+
+              const defaultText = storyLanguage === 'he' ? 'טקסט מלא על האירוע' : 'Full text about the event'
               const generatedFiles = []
+              const errors = []
               let hasUpdates = false
+              let criticalError = null
+
+              console.log(`Generating audio for story ${storyId} in language: ${storyLanguage} using voice: ${voiceId}`)
 
               // Process each event
               for (const event of events) {
@@ -400,9 +428,7 @@ export default defineConfig(({ mode }) => {
                 }
 
                 try {
-                  // Call ElevenLabs API
-                  // Using a Hebrew-compatible voice ID (you may want to adjust this)
-                  const voiceId = '21m00Tcm4TlvDq8ikWAM' // Default voice, supports multiple languages
+                  // Call ElevenLabs API with language-specific voice
                   const elevenLabsUrl = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`
 
                   const response = await fetch(elevenLabsUrl, {
@@ -414,7 +440,7 @@ export default defineConfig(({ mode }) => {
                     },
                     body: JSON.stringify({
                       text: textToSend,
-                      model_id: 'eleven_multilingual_v2',
+                      model_id: modelId,
                       voice_settings: {
                         stability: 0.5,
                         similarity_boost: 0.75,
@@ -424,16 +450,48 @@ export default defineConfig(({ mode }) => {
 
                   if (!response.ok) {
                     const errorText = await response.text()
-                    let errorMessage = `ElevenLabs API error for event ${event.eventId}`
+                    let errorMessage = ''
+                    let errorDetail = null
                     try {
                       const errorJson = JSON.parse(errorText)
-                      errorMessage += `: ${errorJson.detail?.message || errorJson.detail || errorText}`
+                      errorDetail = errorJson.detail?.message || errorJson.detail || errorText
+                      errorMessage = errorDetail
                     } catch {
-                      errorMessage += `: ${errorText}`
+                      errorMessage = errorText
+                      errorDetail = errorText
                     }
-                    console.error(errorMessage)
-                    console.error(`Text that failed: "${textToSend.substring(0, 100)}${textToSend.length > 100 ? '...' : ''}"`)
-                    continue
+                    
+                    // Check for critical errors that should stop the entire process
+                    const errorLower = errorMessage.toLowerCase()
+                    const isCriticalError = 
+                      errorLower.includes('free tier') ||
+                      errorLower.includes('abuse') ||
+                      errorLower.includes('unusual activity') ||
+                      errorLower.includes('paid plan') ||
+                      errorLower.includes('subscription') ||
+                      errorLower.includes('account') ||
+                      response.status === 401 ||
+                      response.status === 403
+
+                    if (isCriticalError) {
+                      criticalError = {
+                        message: errorMessage,
+                        eventId: event.eventId,
+                        status: response.status,
+                      }
+                      console.error(`Critical ElevenLabs API error for event ${event.eventId}:`, errorMessage)
+                      console.error(`Text that failed: "${textToSend.substring(0, 100)}${textToSend.length > 100 ? '...' : ''}"`)
+                      // Stop processing on critical errors
+                      break
+                    } else {
+                      errors.push({
+                        eventId: event.eventId,
+                        message: errorMessage,
+                      })
+                      console.error(`ElevenLabs API error for event ${event.eventId}:`, errorMessage)
+                      console.error(`Text that failed: "${textToSend.substring(0, 100)}${textToSend.length > 100 ? '...' : ''}"`)
+                      continue
+                    }
                   }
 
                   // Save audio file
@@ -456,9 +514,25 @@ export default defineConfig(({ mode }) => {
                     audioUrl: event.content.audioUrl,
                   })
                 } catch (err) {
+                  errors.push({
+                    eventId: event.eventId,
+                    message: err.message || 'Unknown error occurred',
+                  })
                   console.error(`Error generating audio for event ${event.eventId}:`, err)
                   // Continue with next event
                 }
+              }
+
+              // If there was a critical error, return it immediately
+              if (criticalError) {
+                res.statusCode = 500
+                res.setHeader('Content-Type', 'application/json')
+                res.end(JSON.stringify({ 
+                  error: criticalError.message,
+                  eventId: criticalError.eventId,
+                  critical: true,
+                }))
+                return
               }
 
               // Save updated events if any changes were made
@@ -472,6 +546,7 @@ export default defineConfig(({ mode }) => {
                 ok: true, 
                 generated: generatedFiles.length,
                 files: generatedFiles,
+                errors: errors.length > 0 ? errors : undefined,
               }))
             } catch (err) {
               console.error('Error generating audio', err)

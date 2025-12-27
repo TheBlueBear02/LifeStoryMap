@@ -28,10 +28,11 @@ export async function getStory(storyId) {
 /**
  * Creates a new story
  * @param {string} name - Story name
+ * @param {string} language - Story language code (default: 'en')
  * @returns {Promise<Object>} - Created story object
  */
-export async function createStory(name) {
-  return post(API_PATHS.STORIES, { name: name.trim() })
+export async function createStory(name, language = 'en') {
+  return post(API_PATHS.STORIES, { name: name.trim(), language })
 }
 
 /**

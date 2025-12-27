@@ -4,6 +4,8 @@ import logoImage from '../assets/Logos/logo no name no bg.png'
 import { getStories, createStory, updateStory, deleteStory } from '../services/storyService.js'
 import { ROUTES, API_PATHS } from '../constants/paths.js'
 import { get } from '../services/api.js'
+import { generateAudio } from '../services/audioService.js'
+import { getEvents } from '../services/eventService.js'
 
 function HomeView() {
   const [stories, setStories] = useState([])
@@ -15,8 +17,72 @@ function HomeView() {
   const [editingStoryId, setEditingStoryId] = useState(null)
   const [editingStoryName, setEditingStoryName] = useState('')
   const [presentationType, setPresentationType] = useState({}) // { storyId: 'Presentation' | 'Cinema' }
+  const [generatingAudio, setGeneratingAudio] = useState({}) // { storyId: true/false }
+  const [eventsData, setEventsData] = useState({}) // { storyId: events[] } - stores events for each story
   const menuRefs = useRef({})
   const navigate = useNavigate()
+
+  // Helper function to strip HTML and get plain text
+  const stripHtml = (html) => {
+    if (!html) return ''
+    let text = html
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&apos;/g, "'")
+    text = text.replace(/<[^>]*>/g, '')
+    text = text.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec))
+    text = text.replace(/&#x([a-f\d]+);/gi, (match, hex) => String.fromCharCode(parseInt(hex, 16)))
+    return text.replace(/\s+/g, ' ').trim()
+  }
+
+  // Check if a story needs audio generation
+  const needsAudioGeneration = (storyId) => {
+    const events = eventsData[storyId]
+    if (!Array.isArray(events)) return false
+
+    // Find the story to get its language
+    const story = [...stories, ...exampleStories].find((s) => s.id === storyId)
+    const storyLanguage = story?.language || 'en'
+    
+    // Default texts for different languages
+    const defaultTexts = {
+      'he': 'טקסט מלא על האירוע',
+      'en': 'Full text about the event',
+    }
+    const defaultText = defaultTexts[storyLanguage] || defaultTexts['en']
+    
+    // Check if there are any events that need audio
+    return events.some((event) => {
+      // Skip Opening and Closing events
+      if (event?.eventType === 'Opening' || event?.eventType === 'Closing') {
+        return false
+      }
+
+      const textHtml = event?.content?.textHtml || ''
+      const plainText = stripHtml(textHtml)
+      const trimmedText = plainText.trim()
+
+      // Event needs audio if it has text, not default text, and no audioUrl
+      return trimmedText && trimmedText !== defaultText && !event?.content?.audioUrl
+    })
+  }
+
+  // Load events for a story
+  const loadEventsForStory = async (storyId) => {
+    if (eventsData[storyId]) return // Already loaded
+    
+    try {
+      const events = await getEvents(storyId)
+      setEventsData((prev) => ({ ...prev, [storyId]: events }))
+    } catch (err) {
+      console.error(`Error loading events for story ${storyId}:`, err)
+      setEventsData((prev) => ({ ...prev, [storyId]: [] }))
+    }
+  }
 
   useEffect(() => {
     const loadStories = async () => {
@@ -42,6 +108,12 @@ function HomeView() {
           initialPresentationType[story.id] = 'Presentation'
         })
         setPresentationType(initialPresentationType)
+
+        // Load events for all stories to check audio status
+        const allStoryIds = [...storiesArray, ...exampleStoriesArray].map(s => s.id)
+        allStoryIds.forEach(storyId => {
+          loadEventsForStory(storyId)
+        })
       } catch (err) {
         console.error('Error loading stories:', err)
         console.error('Error details:', err.message, err.stack)
@@ -147,10 +219,59 @@ function HomeView() {
   }
 
   const handlePresentationTypeToggle = (storyId) => {
-    setPresentationType((prev) => ({
-      ...prev,
-      [storyId]: prev[storyId] === 'Presentation' ? 'Cinema' : 'Presentation',
-    }))
+    setPresentationType((prev) => {
+      const newType = prev[storyId] === 'Presentation' ? 'Cinema' : 'Presentation'
+      // Load events when switching to Cinema view to check audio status
+      if (newType === 'Cinema') {
+        loadEventsForStory(storyId)
+      }
+      return {
+        ...prev,
+        [storyId]: newType,
+      }
+    })
+  }
+
+  const handleGenerateAudio = async (storyId) => {
+    if (generatingAudio[storyId]) return // Prevent multiple clicks
+
+    setGeneratingAudio((prev) => ({ ...prev, [storyId]: true }))
+    
+    try {
+      const result = await generateAudio(storyId)
+      
+      // Check if there were errors
+      if (result.errors && result.errors.length > 0) {
+        const errorCount = result.errors.length
+        const successCount = result.generated || 0
+        if (successCount > 0) {
+          alert(
+            `Partially completed: Generated audio for ${successCount} event(s), but ${errorCount} event(s) failed.\n\n` +
+            `First error: ${result.errors[0].message}`
+          )
+        } else {
+          alert(
+            `Failed to generate audio for ${errorCount} event(s).\n\n` +
+            `Error: ${result.errors[0].message}`
+          )
+        }
+      } else if (result.generated > 0) {
+        alert(`Successfully generated audio for ${result.generated} event(s)!`)
+      } else {
+        alert('No audio files were generated. All events may already have audio or no events need audio generation.')
+      }
+      
+      // Reload events to get updated audio URLs
+      const events = await getEvents(storyId)
+      setEventsData((prev) => ({ ...prev, [storyId]: events }))
+    } catch (err) {
+      console.error('Error generating audio:', err)
+      // Show the error message from the API
+      const errorMessage = err.message || 'Failed to generate audio. Please try again.'
+      alert(`Error: ${errorMessage}`)
+    } finally {
+      setGeneratingAudio((prev) => ({ ...prev, [storyId]: false }))
+    }
   }
 
   return (
@@ -271,14 +392,32 @@ function HomeView() {
                       </div>
                     </div>
                     <div className="story-card-actions">
-                      <Link
-                        to={(presentationType[story.id] || 'Presentation') === 'Cinema' 
-                          ? ROUTES.CINEMA_STORY(story.id) 
-                          : ROUTES.VIEW_STORY(story.id)}
-                        className="primary-btn story-view-btn"
-                      >
-                        View
-                      </Link>
+                      {(presentationType[story.id] || 'Presentation') === 'Cinema' ? (
+                        needsAudioGeneration(story.id) ? (
+                          <button
+                            type="button"
+                            onClick={() => handleGenerateAudio(story.id)}
+                            className="primary-btn story-view-btn"
+                            disabled={generatingAudio[story.id]}
+                          >
+                            {generatingAudio[story.id] ? 'Generating...' : 'Generate Audio'}
+                          </button>
+                        ) : (
+                          <Link
+                            to={ROUTES.CINEMA_STORY(story.id)}
+                            className="primary-btn story-view-btn"
+                          >
+                            View
+                          </Link>
+                        )
+                      ) : (
+                        <Link
+                          to={ROUTES.VIEW_STORY(story.id)}
+                          className="primary-btn story-view-btn"
+                        >
+                          View
+                        </Link>
+                      )}
                       <Link
                         to={ROUTES.EDIT_STORY(story.id)}
                         className="secondary-btn story-edit-btn"
@@ -378,14 +517,32 @@ function HomeView() {
                         </div>
                       </div>
                       <div className="story-card-actions">
-                        <Link
-                          to={(presentationType[story.id] || 'Presentation') === 'Cinema' 
-                            ? ROUTES.CINEMA_STORY(story.id) 
-                            : ROUTES.VIEW_STORY(story.id)}
-                          className="primary-btn story-view-btn"
-                        >
-                          View
-                        </Link>
+                        {(presentationType[story.id] || 'Presentation') === 'Cinema' ? (
+                          needsAudioGeneration(story.id) ? (
+                            <button
+                              type="button"
+                              onClick={() => handleGenerateAudio(story.id)}
+                              className="primary-btn story-view-btn"
+                              disabled={generatingAudio[story.id]}
+                            >
+                              {generatingAudio[story.id] ? 'Generating...' : 'Generate Audio'}
+                            </button>
+                          ) : (
+                            <Link
+                              to={ROUTES.CINEMA_STORY(story.id)}
+                              className="primary-btn story-view-btn"
+                            >
+                              View
+                            </Link>
+                          )
+                        ) : (
+                          <Link
+                            to={ROUTES.VIEW_STORY(story.id)}
+                            className="primary-btn story-view-btn"
+                          >
+                            View
+                          </Link>
+                        )}
                         <Link to={ROUTES.EDIT_STORY(story.id)} className="secondary-btn story-edit-btn">
                           Edit Story
                         </Link>

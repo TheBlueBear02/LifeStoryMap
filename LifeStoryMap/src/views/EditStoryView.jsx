@@ -6,6 +6,8 @@ import { useStoryData } from '../hooks/useStoryData.js'
 import { useLocationPicker } from '../hooks/useLocationPicker.js'
 import { uploadImage } from '../services/imageService.js'
 import { saveEvents } from '../services/eventService.js'
+import { updateStory } from '../services/storyService.js'
+import { LANGUAGES, DEFAULT_LANGUAGE } from '../constants/languages.js'
 
 function EditStoryView({
   mapCamera,
@@ -27,6 +29,7 @@ function EditStoryView({
   const [draggingIndex, setDraggingIndex] = useState(null)
   const [dragOverTarget, setDragOverTarget] = useState(null) // number index or 'end'
   const [isActionsBarStuck, setIsActionsBarStuck] = useState(false)
+  const [storyLanguage, setStoryLanguage] = useState(DEFAULT_LANGUAGE)
   const cameraBeforeEventFocusRef = useRef(null)
   const actionsBarRef = useRef(null)
   const actionsBarSentinelRef = useRef(null)
@@ -41,6 +44,13 @@ function EditStoryView({
     onCameraChange: onMapCameraChange,
     mapCamera,
   })
+
+  // Sync story language when story loads
+  useEffect(() => {
+    if (story) {
+      setStoryLanguage(story.language || DEFAULT_LANGUAGE)
+    }
+  }, [story])
 
   // Sync loaded events to local state
   useEffect(() => {
@@ -612,6 +622,20 @@ function EditStoryView({
     setIsDirty(true)
   }
 
+  const handleLanguageChange = async (newLanguage) => {
+    if (!storyId || newLanguage === storyLanguage) return
+    
+    try {
+      setStoryLanguage(newLanguage)
+      await updateStory(storyId, { language: newLanguage })
+    } catch (err) {
+      console.error('Error updating story language:', err)
+      // Revert on error
+      setStoryLanguage(story?.language || DEFAULT_LANGUAGE)
+      alert('Failed to update language. Please try again.')
+    }
+  }
+
   const saveToFile = async () => {
     if (!Array.isArray(events) || !storyId) return
     try {
@@ -653,11 +677,40 @@ function EditStoryView({
           </button>
         </div>
         <div>
-          <h1>{story ? story.name : 'Create New Story'}</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <h1 style={{ margin: 0, flex: 1, minWidth: '200px' }}>{story ? story.name : 'Create New Story'}</h1>
+            
+          </div>
           <p className="app-subtitle">
             Create a story by adding events. Create new events by Inserting title, date, text and image and don't forget to add location!
           </p>
         </div>
+        {story && (
+             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <label htmlFor="story-language-select" style={{ fontSize: '0.9rem', fontWeight: 500 }}>
+                  Language:
+                </label>
+                <select
+                  id="story-language-select"
+                  value={storyLanguage}
+                  onChange={(e) => handleLanguageChange(e.target.value)}
+                  style={{
+                    padding: '0.4rem 0.8rem',
+                    fontSize: '0.9rem',
+                    border: '1px solid #ccc',
+                    borderRadius: '4px',
+                    backgroundColor: 'white',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {LANGUAGES.map((lang) => (
+                    <option  key={lang.code} value={lang.code}>
+                      {lang.nativeName} ({lang.name})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
       </header>
 
       <div

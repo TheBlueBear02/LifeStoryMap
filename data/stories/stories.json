@@ -5,6 +5,7 @@
     "eventsFilePath": "events/events.json",
     "dateCreated": "2024-01-15T10:00:00.000Z",
     "eventCount": 10,
-    "published": false
+    "published": false,
+    "language": "he"
   }
 ]
