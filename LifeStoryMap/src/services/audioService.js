@@ -1,4 +1,4 @@
-import { post } from './api.js'
+import { post, del } from './api.js'
 import { API_PATHS } from '../constants/paths.js'
 
 /**
@@ -31,5 +31,24 @@ export function getAudioUrl(event) {
  */
 export function hasAudio(event) {
   return !!getAudioUrl(event)
+}
+
+/**
+ * Deletes an audio file for an event
+ * @param {string} storyId - Story ID
+ * @param {string} eventId - Event ID
+ * @returns {Promise<void>}
+ */
+export async function deleteAudio(storyId, eventId) {
+  return del(API_PATHS.DELETE_AUDIO(storyId, eventId))
+}
+
+/**
+ * Deletes all audio files for a story
+ * @param {string} storyId - Story ID
+ * @returns {Promise<Object>} - Response with deleted count
+ */
+export async function deleteAllAudio(storyId) {
+  return del(API_PATHS.DELETE_ALL_AUDIO(storyId))
 }
 

@@ -48,8 +48,7 @@
         "caption": "כפר ילדותי",
         "urlOld": "/stories/images/1765922894161-tbd73y.jpg",
         "urlNew": "/stories/images/1765972550825-0fs1lc.jpg"
-      },
-      "audioUrl": ""
+      }
     },
     "transition": {
       "transportType": "walking"
@@ -84,8 +83,7 @@
         "caption": "",
         "urlOld": "",
         "urlNew": ""
-      },
-      "audioUrl": ""
+      }
     },
     "transition": {
       "transportType": "walking"
@@ -121,10 +119,11 @@
         "urlOld": "",
         "urlNew": ""
       },
-      "audioUrl": ""
+      "audioUrl": "/stories/audio/E004-1766946276572-s8i1hs.mp3"
     },
     "transition": {
-      "transportType": "walking"
+      "transportType": "walking",
+      "sourceEventId": "E002"
     }
   },
   {

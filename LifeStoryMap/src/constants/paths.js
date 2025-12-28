@@ -13,6 +13,8 @@ export const API_PATHS = {
   STORY: (storyId) => `/api/stories/${storyId}`,
   STORY_EVENTS: (storyId) => `/api/stories/${storyId}/events`,
   GENERATE_AUDIO: (storyId) => `/api/stories/${storyId}/generate-audio`,
+  DELETE_AUDIO: (storyId, eventId) => `/api/stories/${storyId}/audio/${eventId}`,
+  DELETE_ALL_AUDIO: (storyId) => `/api/stories/${storyId}/audio`,
   EXAMPLE_STORIES: '/api/example-stories',
   EXAMPLE_STORY: (storyId) => `/api/example-stories/${storyId}`,
   EXAMPLE_STORY_EVENTS: (storyId) => `/api/example-stories/${storyId}/events`,

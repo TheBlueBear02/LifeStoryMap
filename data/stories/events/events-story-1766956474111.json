@@ -1,0 +1,141 @@
+[
+  {
+    "eventId": "OPENING",
+    "eventType": "Opening",
+    "title": "Opening",
+    "content": {
+      "textHtml": "",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    }
+  },
+  {
+    "eventId": "E001",
+    "eventType": "Event",
+    "title": "First event",
+    "timeline": {
+      "dateStart": "1945-12-28",
+      "dateEnd": "1945-12-28"
+    },
+    "location": {
+      "name": "London, Greater London, England, United Kingdom",
+      "coordinates": {
+        "lat": 51.5073,
+        "lng": -0.127647
+      },
+      "mapView": {
+        "zoom": 12,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "content": {
+      "textHtml": "The story begins in the misty, post-war streets of North London, where a small terraced house served as the first anchor point of a long journey. Here, the sounds of the city’s recovery blended with the quiet stories told by parents who had traveled far to build a new life. These early years were defined by the contrast between the bustling London markets and the deep, inherited longing for a distant homeland that remained just a whisper in the family living room.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      },
+      "audioUrl": "/stories/audio/E001-1766958462974-5jqgmf.mp3"
+    },
+    "transition": {
+      "sourceEventId": null,
+      "transportType": "train"
+    }
+  },
+  {
+    "eventId": "E002",
+    "eventType": "Event",
+    "title": "Second event",
+    "timeline": {
+      "dateStart": "1962-12-28",
+      "dateEnd": "1962-12-28"
+    },
+    "location": {
+      "name": "Oxford, Oxfordshire, England, United Kingdom",
+      "coordinates": {
+        "lat": 51.75355,
+        "lng": -1.258646
+      },
+      "mapView": {
+        "zoom": 12,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "content": {
+      "textHtml": "Years later, the narrative shifts dramatically across the continent to the lush green valleys of Mukachevo. Standing beneath the shadow of the Palanok Castle, the transition from London’s urban sprawl to the quiet dignity of the Zakarpattia region was striking. This was more than a relocation; it was a reconnection. Every cobblestone street in this ancient town felt like a step back in time, bridging the gap between a modern British upbringing and a rugged, ancestral heritage.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      },
+      "audioUrl": "/stories/audio/E002-1766958464750-zrhn6z.mp3"
+    },
+    "transition": {
+      "sourceEventId": "E001",
+      "transportType": "horse"
+    }
+  },
+  {
+    "eventId": "E003",
+    "eventType": "Event",
+    "title": "Third event",
+    "timeline": {
+      "dateStart": "1985-12-28",
+      "dateEnd": "1985-12-28"
+    },
+    "location": {
+      "name": "Palacefields, Runcorn, Halton, England, United Kingdom",
+      "coordinates": {
+        "lat": 53.322742,
+        "lng": -2.690393
+      },
+      "mapView": {
+        "zoom": 12,
+        "pitch": 0,
+        "bearing": 0,
+        "mapStyle": "mapbox://styles/mapbox/streets-v12"
+      }
+    },
+    "content": {
+      "textHtml": "Deep in the woods near the Shenborn Palace, life finally found its steady, permanent rhythm. Surrounded by the timeless architecture of the Carpathians and the whispering pines, the journey that started in London found its true purpose. This final map marker represents a period of peace, where the complexity of a bi-cultural identity was finally resolved among the mountains, proving that home isn't just a single point on a map, but the path we take to find it.",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    },
+    "transition": {
+      "sourceEventId": "E002"
+    }
+  },
+  {
+    "eventId": "CLOSING",
+    "eventType": "Closing",
+    "title": "Closing",
+    "content": {
+      "textHtml": "",
+      "media": [],
+      "imageComparison": {
+        "enabled": false,
+        "caption": "",
+        "urlOld": "",
+        "urlNew": ""
+      }
+    }
+  }
+]

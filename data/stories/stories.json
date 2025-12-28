@@ -7,5 +7,15 @@
     "eventCount": 10,
     "published": false,
     "language": "he"
+  },
+  {
+    "id": "story-1766956474111",
+    "name": "English story",
+    "language": "en",
+    "eventsFilePath": "events/events-story-1766956474111.json",
+    "dateCreated": "2025-12-28T21:14:34.168Z",
+    "eventCount": 5,
+    "published": false,
+    "voiceId": "NOpBlnGInO9m6vDvFkFC"
   }
 ]

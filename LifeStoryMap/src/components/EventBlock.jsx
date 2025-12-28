@@ -16,6 +16,7 @@ function EventBlock({
   onDelete,
   onBeginPickLocation,
   onSearchLocation,
+  onDeleteAudio,
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuRef = useRef(null)
@@ -330,6 +331,34 @@ function EventBlock({
               )
             )}
           </div>
+
+          {!isSpecial && event?.content?.audioUrl && (
+            <div className="event-details-section">
+              <h3>Audio</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                <audio controls style={{ flex: 1, minWidth: '200px' }}>
+                  <source src={event.content.audioUrl} type="audio/mpeg" />
+                  Your browser does not support the audio element.
+                </audio>
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    if (window.confirm('Are you sure you want to delete this audio file?')) {
+                      if (onDeleteAudio) {
+                        onDeleteAudio(index)
+                      }
+                    }
+                  }}
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  Delete Audio
+                </button>
+              </div>
+            </div>
+          )}
           
           {!isSpecial && (
             <div className="event-details-section">

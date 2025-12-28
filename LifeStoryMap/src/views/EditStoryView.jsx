@@ -7,7 +7,9 @@ import { useLocationPicker } from '../hooks/useLocationPicker.js'
 import { uploadImage } from '../services/imageService.js'
 import { saveEvents } from '../services/eventService.js'
 import { updateStory } from '../services/storyService.js'
+import { deleteAudio, deleteAllAudio } from '../services/audioService.js'
 import { LANGUAGES, DEFAULT_LANGUAGE } from '../constants/languages.js'
+import { getVoicesForLanguage, getDefaultVoiceId } from '../constants/voices.js'
 
 function EditStoryView({
   mapCamera,
@@ -30,6 +32,7 @@ function EditStoryView({
   const [dragOverTarget, setDragOverTarget] = useState(null) // number index or 'end'
   const [isActionsBarStuck, setIsActionsBarStuck] = useState(false)
   const [storyLanguage, setStoryLanguage] = useState(DEFAULT_LANGUAGE)
+  const [storyVoiceId, setStoryVoiceId] = useState(null)
   const cameraBeforeEventFocusRef = useRef(null)
   const actionsBarRef = useRef(null)
   const actionsBarSentinelRef = useRef(null)
@@ -45,10 +48,13 @@ function EditStoryView({
     mapCamera,
   })
 
-  // Sync story language when story loads
+  // Sync story language and voice when story loads
   useEffect(() => {
     if (story) {
-      setStoryLanguage(story.language || DEFAULT_LANGUAGE)
+      const language = story.language || DEFAULT_LANGUAGE
+      setStoryLanguage(language)
+      // Set voiceId from story, or use default for the language
+      setStoryVoiceId(story.voiceId || getDefaultVoiceId(language))
     }
   }, [story])
 
@@ -622,17 +628,98 @@ function EditStoryView({
     setIsDirty(true)
   }
 
-  const handleLanguageChange = async (newLanguage) => {
-    if (!storyId || newLanguage === storyLanguage) return
+  const handleLanguageChange = (newLanguage) => {
+    if (newLanguage === storyLanguage) return
     
+    setStoryLanguage(newLanguage)
+    // Reset voice to default for new language
+    const defaultVoiceId = getDefaultVoiceId(newLanguage)
+    setStoryVoiceId(defaultVoiceId)
+    setIsDirty(true)
+  }
+
+  const handleVoiceChange = (newVoiceId) => {
+    if (newVoiceId === storyVoiceId) return
+    
+    setStoryVoiceId(newVoiceId)
+    setIsDirty(true)
+  }
+
+  const handleDeleteAudio = async (index) => {
+    if (!storyId) return
+    
+    const event = events[index]
+    if (!event?.eventId || !event?.content?.audioUrl) {
+      alert('No audio file found for this event.')
+      return
+    }
+
     try {
-      setStoryLanguage(newLanguage)
-      await updateStory(storyId, { language: newLanguage })
+      // Delete audio file via API
+      await deleteAudio(storyId, event.eventId)
+      
+      // Update local state to remove audioUrl
+      setEvents((prev) =>
+        prev.map((ev, i) => {
+          if (i !== index) return ev
+          const clone = structuredClone ? structuredClone(ev) : JSON.parse(JSON.stringify(ev))
+          if (clone.content && clone.content.audioUrl) {
+            delete clone.content.audioUrl
+          }
+          return clone
+        }),
+      )
+      setIsDirty(true)
+      
+      // Save changes immediately
+      await saveToFile()
     } catch (err) {
-      console.error('Error updating story language:', err)
-      // Revert on error
-      setStoryLanguage(story?.language || DEFAULT_LANGUAGE)
-      alert('Failed to update language. Please try again.')
+      console.error('Error deleting audio:', err)
+      alert('Failed to delete audio file. Please try again.')
+    }
+  }
+
+  const handleDeleteAllAudio = async () => {
+    if (!storyId) return
+
+    // Count how many events have audio
+    const eventsWithAudio = events.filter((ev) => ev?.content?.audioUrl)
+    if (eventsWithAudio.length === 0) {
+      alert('No audio files found for this story.')
+      return
+    }
+
+    if (!window.confirm(`Are you sure you want to delete all ${eventsWithAudio.length} audio file${eventsWithAudio.length === 1 ? '' : 's'} for this story? This action cannot be undone.`)) {
+      return
+    }
+
+    try {
+      // Delete all audio files via API (this also removes audioUrls from the JSON file)
+      const result = await deleteAllAudio(storyId)
+      
+      // Update local state to remove all audioUrl (API already saved the file)
+      const updatedEvents = events.map((ev) => {
+        const clone = structuredClone ? structuredClone(ev) : JSON.parse(JSON.stringify(ev))
+        if (clone.content && clone.content.audioUrl) {
+          delete clone.content.audioUrl
+        }
+        return clone
+      })
+      
+      setEvents(updatedEvents)
+      // Don't set isDirty since the API already saved the file
+      setIsDirty(false)
+      
+      // Notify parent component of changes
+      if (onEventsChange) {
+        onEventsChange(updatedEvents)
+      }
+      
+      const deletedCount = result?.deleted || eventsWithAudio.length
+      alert(`Successfully deleted ${deletedCount} audio file${deletedCount === 1 ? '' : 's'} and removed audio URLs from the story.`)
+    } catch (err) {
+      console.error('Error deleting all audio files:', err)
+      alert('Failed to delete all audio files. Please try again.')
     }
   }
 
@@ -641,7 +728,25 @@ function EditStoryView({
     try {
       setSaveStatus('saving')
       const ensuredEvents = ensureSpecialEvents(events)
+      
+      // Save events
       await saveEvents(storyId, ensuredEvents)
+      
+      // Save story metadata (language and voiceId) if they differ from the loaded story
+      const storyUpdates = {}
+      const originalLanguage = story?.language || DEFAULT_LANGUAGE
+      if (storyLanguage !== originalLanguage) {
+        storyUpdates.language = storyLanguage
+      }
+      const originalVoiceId = story?.voiceId || getDefaultVoiceId(originalLanguage)
+      if (storyVoiceId !== originalVoiceId) {
+        storyUpdates.voiceId = storyVoiceId
+      }
+      
+      if (Object.keys(storyUpdates).length > 0) {
+        await updateStory(storyId, storyUpdates)
+      }
+      
       setSaveStatus('saved')
       setIsDirty(false)
       if (onEventsChange) {
@@ -686,29 +791,55 @@ function EditStoryView({
           </p>
         </div>
         {story && (
-             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <label htmlFor="story-language-select" style={{ fontSize: '0.9rem', fontWeight: 500 }}>
-                  Language:
-                </label>
-                <select
-                  id="story-language-select"
-                  value={storyLanguage}
-                  onChange={(e) => handleLanguageChange(e.target.value)}
-                  style={{
-                    padding: '0.4rem 0.8rem',
-                    fontSize: '0.9rem',
-                    border: '1px solid #ccc',
-                    borderRadius: '4px',
-                    backgroundColor: 'white',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {LANGUAGES.map((lang) => (
-                    <option  key={lang.code} value={lang.code}>
-                      {lang.nativeName} ({lang.name})
-                    </option>
-                  ))}
-                </select>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <label htmlFor="story-language-select" style={{ fontSize: '0.9rem', fontWeight: 500 }}>
+                    Language:
+                  </label>
+                  <select
+                    id="story-language-select"
+                    value={storyLanguage}
+                    onChange={(e) => handleLanguageChange(e.target.value)}
+                    style={{
+                      padding: '0.4rem 0.8rem',
+                      fontSize: '0.9rem',
+                      border: '1px solid #ccc',
+                      borderRadius: '4px',
+                      backgroundColor: 'white',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {LANGUAGES.map((lang) => (
+                      <option  key={lang.code} value={lang.code}>
+                        {lang.nativeName} ({lang.name})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <label htmlFor="story-voice-select" style={{ fontSize: '0.9rem', fontWeight: 500 }}>
+                    Voice:
+                  </label>
+                  <select
+                    id="story-voice-select"
+                    value={storyVoiceId || getDefaultVoiceId(storyLanguage)}
+                    onChange={(e) => handleVoiceChange(e.target.value)}
+                    style={{
+                      padding: '0.4rem 0.8rem',
+                      fontSize: '0.9rem',
+                      border: '1px solid #ccc',
+                      borderRadius: '4px',
+                      backgroundColor: 'white',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {getVoicesForLanguage(storyLanguage).map((voice) => (
+                      <option key={voice.id} value={voice.id}>
+                        {voice.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             )}
       </header>
@@ -741,6 +872,15 @@ function EditStoryView({
               : isDirty
                 ? 'Save Changes'
                 : 'Changes Saved'}
+        </button>
+        <button
+          type="button"
+          className="secondary-btn"
+          onClick={handleDeleteAllAudio}
+          style={{ color: '#d32f2f' }}
+          title="Delete all audio files for this story"
+        >
+          Delete All Audio
         </button>
       </div>
 
@@ -786,6 +926,7 @@ function EditStoryView({
                 onDelete={deleteEventAt}
                 onBeginPickLocation={beginPickLocationForEvent}
                 onSearchLocation={searchLocationForEvent}
+                onDeleteAudio={handleDeleteAudio}
               />
 
               {!isSpecialEvent(event) && (
