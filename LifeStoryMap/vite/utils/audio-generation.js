@@ -101,6 +101,10 @@ export const generateAudioForStory = async (story, events, elevenLabsToken, stri
 
   const eventsFile = path.resolve(storiesDataDir, story.eventsFilePath)
 
+  // Create story-specific folder in audio directory
+  const storyAudioDir = path.join(audioDir, story.id)
+  await fs.promises.mkdir(storyAudioDir, { recursive: true })
+
   // Process each event
   for (const event of events) {
     // Skip Opening and Closing events
@@ -192,7 +196,7 @@ export const generateAudioForStory = async (story, events, elevenLabsToken, stri
       const timestamp = Date.now()
       const randomStr = Math.random().toString(36).slice(2, 8)
       const audioFileName = `${event.eventId}-${timestamp}-${randomStr}.mp3`
-      const audioFilePath = path.join(audioDir, audioFileName)
+      const audioFilePath = path.join(storyAudioDir, audioFileName)
       
       await fs.promises.writeFile(audioFilePath, Buffer.from(audioBuffer))
 
@@ -200,7 +204,7 @@ export const generateAudioForStory = async (story, events, elevenLabsToken, stri
       if (!event.content) {
         event.content = {}
       }
-      event.content.audioUrl = `/stories/audio/${audioFileName}`
+      event.content.audioUrl = `/stories/audio/${story.id}/${audioFileName}`
       hasUpdates = true
       generatedFiles.push({
         eventId: event.eventId,

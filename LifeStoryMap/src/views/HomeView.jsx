@@ -393,23 +393,12 @@ function HomeView() {
                     </div>
                     <div className="story-card-actions">
                       {(presentationType[story.id] || 'Presentation') === 'Cinema' ? (
-                        needsAudioGeneration(story.id) ? (
-                          <button
-                            type="button"
-                            onClick={() => handleGenerateAudio(story.id)}
-                            className="primary-btn story-view-btn"
-                            disabled={generatingAudio[story.id]}
-                          >
-                            {generatingAudio[story.id] ? 'Generating...' : 'Generate Audio'}
-                          </button>
-                        ) : (
-                          <Link
-                            to={ROUTES.CINEMA_STORY(story.id)}
-                            className="primary-btn story-view-btn"
-                          >
-                            View
-                          </Link>
-                        )
+                        <Link
+                          to={ROUTES.CINEMA_STORY(story.id)}
+                          className="primary-btn story-view-btn"
+                        >
+                          View
+                        </Link>
                       ) : (
                         <Link
                           to={ROUTES.VIEW_STORY(story.id)}
@@ -518,23 +507,12 @@ function HomeView() {
                       </div>
                       <div className="story-card-actions">
                         {(presentationType[story.id] || 'Presentation') === 'Cinema' ? (
-                          needsAudioGeneration(story.id) ? (
-                            <button
-                              type="button"
-                              onClick={() => handleGenerateAudio(story.id)}
-                              className="primary-btn story-view-btn"
-                              disabled={generatingAudio[story.id]}
-                            >
-                              {generatingAudio[story.id] ? 'Generating...' : 'Generate Audio'}
-                            </button>
-                          ) : (
-                            <Link
-                              to={ROUTES.CINEMA_STORY(story.id)}
-                              className="primary-btn story-view-btn"
-                            >
-                              View
-                            </Link>
-                          )
+                          <Link
+                            to={ROUTES.CINEMA_STORY(story.id)}
+                            className="primary-btn story-view-btn"
+                          >
+                            View
+                          </Link>
                         ) : (
                           <Link
                             to={ROUTES.VIEW_STORY(story.id)}

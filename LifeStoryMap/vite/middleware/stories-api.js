@@ -379,15 +379,16 @@ export const storiesApiMiddleware = async (req, res, next) => {
         const audioUrl = event?.content?.audioUrl
 
         if (audioUrl) {
-          // Extract filename from audioUrl (e.g., /stories/audio/filename.mp3)
-          const audioFileName = audioUrl.replace(/^\/stories\/audio\//, '')
-          const audioFilePath = path.join(audioDir, audioFileName)
+          // Extract path from audioUrl (e.g., /stories/audio/filename.mp3 or /stories/audio/{storyId}/filename.mp3)
+          // Remove /stories/audio/ prefix to get the relative path
+          const audioPath = audioUrl.replace(/^\/stories\/audio\//, '')
+          const audioFilePath = path.join(audioDir, audioPath)
 
           // Delete the audio file from filesystem
           try {
             await fs.promises.unlink(audioFilePath)
             deletedCount++
-            console.log(`Deleted audio file: ${audioFileName}`)
+            console.log(`Deleted audio file: ${audioPath}`)
           } catch (err) {
             console.log('Audio file not found or already deleted:', err.message)
             // Continue even if file doesn't exist
@@ -462,9 +463,10 @@ export const storiesApiMiddleware = async (req, res, next) => {
         return
       }
 
-      // Extract filename from audioUrl (e.g., /stories/audio/filename.mp3)
-      const audioFileName = audioUrl.replace(/^\/stories\/audio\//, '')
-      const audioFilePath = path.join(audioDir, audioFileName)
+      // Extract path from audioUrl (e.g., /stories/audio/filename.mp3 or /stories/audio/{storyId}/filename.mp3)
+      // Remove /stories/audio/ prefix to get the relative path
+      const audioPath = audioUrl.replace(/^\/stories\/audio\//, '')
+      const audioFilePath = path.join(audioDir, audioPath)
 
       // Delete the audio file from filesystem
       try {

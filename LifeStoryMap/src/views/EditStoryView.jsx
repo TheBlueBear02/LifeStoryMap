@@ -7,7 +7,8 @@ import { useLocationPicker } from '../hooks/useLocationPicker.js'
 import { uploadImage } from '../services/imageService.js'
 import { saveEvents } from '../services/eventService.js'
 import { updateStory } from '../services/storyService.js'
-import { deleteAudio, deleteAllAudio } from '../services/audioService.js'
+import { deleteAudio, deleteAllAudio, generateAudio } from '../services/audioService.js'
+import { getEvents } from '../services/eventService.js'
 import { LANGUAGES, DEFAULT_LANGUAGE } from '../constants/languages.js'
 import { getVoicesForLanguage, getDefaultVoiceId } from '../constants/voices.js'
 
@@ -33,9 +34,13 @@ function EditStoryView({
   const [isActionsBarStuck, setIsActionsBarStuck] = useState(false)
   const [storyLanguage, setStoryLanguage] = useState(DEFAULT_LANGUAGE)
   const [storyVoiceId, setStoryVoiceId] = useState(null)
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false)
+  const [isAudioSectionExpanded, setIsAudioSectionExpanded] = useState(false)
+  const [isAudioMenuOpen, setIsAudioMenuOpen] = useState(false)
   const cameraBeforeEventFocusRef = useRef(null)
   const actionsBarRef = useRef(null)
   const actionsBarSentinelRef = useRef(null)
+  const audioMenuRef = useRef(null)
 
   // Use custom hooks
   const { loading, story, events: loadedEvents } = useStoryData(storyId)
@@ -57,6 +62,23 @@ function EditStoryView({
       setStoryVoiceId(story.voiceId || getDefaultVoiceId(language))
     }
   }, [story])
+
+  // Handle clicks outside audio menu
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (audioMenuRef.current && !audioMenuRef.current.contains(e.target)) {
+        setIsAudioMenuOpen(false)
+      }
+    }
+
+    if (isAudioMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isAudioMenuOpen])
 
   // Sync loaded events to local state
   useEffect(() => {
@@ -723,6 +745,51 @@ function EditStoryView({
     }
   }
 
+  const handleGenerateAudio = async () => {
+    if (!storyId || isGeneratingAudio) return
+
+    setIsGeneratingAudio(true)
+    
+    try {
+      const result = await generateAudio(storyId)
+      
+      // Check if there were errors
+      if (result.errors && result.errors.length > 0) {
+        const errorCount = result.errors.length
+        const successCount = result.generated || 0
+        if (successCount > 0) {
+          alert(
+            `Partially completed: Generated audio for ${successCount} event(s), but ${errorCount} event(s) failed.\n\n` +
+            `First error: ${result.errors[0].message}`
+          )
+        } else {
+          alert(
+            `Failed to generate audio for ${errorCount} event(s).\n\n` +
+            `Error: ${result.errors[0].message}`
+          )
+        }
+      } else if (result.generated > 0) {
+        alert(`Successfully generated audio for ${result.generated} event(s)!`)
+      } else {
+        alert('No audio files were generated. All events may already have audio or no events need audio generation.')
+      }
+      
+      // Reload events to get updated audio URLs
+      const reloadedEvents = await getEvents(storyId)
+      const ensuredEvents = ensureSpecialEvents(reloadedEvents)
+      setEvents(ensuredEvents)
+      if (onEventsChange) {
+        onEventsChange(ensuredEvents)
+      }
+    } catch (err) {
+      console.error('Error generating audio:', err)
+      const errorMessage = err.message || 'Failed to generate audio. Please try again.'
+      alert(`Error: ${errorMessage}`)
+    } finally {
+      setIsGeneratingAudio(false)
+    }
+  }
+
   const saveToFile = async () => {
     if (!Array.isArray(events) || !storyId) return
     try {
@@ -790,58 +857,157 @@ function EditStoryView({
             Create a story by adding events. Create new events by Inserting title, date, text and image and don't forget to add location!
           </p>
         </div>
-        {story && (
-             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <label htmlFor="story-language-select" style={{ fontSize: '0.9rem', fontWeight: 500 }}>
-                    Language:
-                  </label>
-                  <select
-                    id="story-language-select"
-                    value={storyLanguage}
-                    onChange={(e) => handleLanguageChange(e.target.value)}
-                    style={{
-                      padding: '0.4rem 0.8rem',
-                      fontSize: '0.9rem',
-                      border: '1px solid #ccc',
-                      borderRadius: '4px',
-                      backgroundColor: 'white',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {LANGUAGES.map((lang) => (
-                      <option  key={lang.code} value={lang.code}>
-                        {lang.nativeName} ({lang.name})
-                      </option>
-                    ))}
-                  </select>
+        {story && (() => {
+          // Calculate events with audio (excluding special events)
+          const regularEvents = events.filter((ev) => !isSpecialEvent(ev))
+          const eventsWithAudio = regularEvents.filter((ev) => ev?.content?.audioUrl)
+          const totalEvents = regularEvents.length
+          const audioCount = eventsWithAudio.length
+          
+          return (
+            <div className="event-block" style={{ marginTop: '1rem' }}>
+              <div className="event-block-header">
+                <div className="event-block-meta-row">
+                  <div className="event-block-id-type">
+                    <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.9rem', color: '#6b7280' }}>
+                      <span
+                        role="img"
+                        aria-label="Audio"
+                        style={{ marginRight: '0.4em', fontSize: '1.1em', verticalAlign: 'middle' }}
+                      >🔊</span>
+                      Voice Over Settings
+                    </span>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                  </div>
+                  <div className="event-header-actions">
+                    <button 
+                      type="button" 
+                      className="event-expand-btn" 
+                      onClick={() => setIsAudioSectionExpanded(!isAudioSectionExpanded)}
+                    >
+                      {isAudioSectionExpanded ? 'Close' : 'Open'}
+                    </button>
+                    <div className="story-menu-container" ref={audioMenuRef}>
+                      <button
+                        type="button"
+                        className="story-menu-icon"
+                        onClick={() => setIsAudioMenuOpen((v) => !v)}
+                        aria-label="Audio menu"
+                        aria-expanded={isAudioMenuOpen}
+                      >
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 20 20"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <circle cx="10" cy="4" r="1.5" fill="currentColor" />
+                          <circle cx="10" cy="10" r="1.5" fill="currentColor" />
+                          <circle cx="10" cy="16" r="1.5" fill="currentColor" />
+                        </svg>
+                      </button>
+                      {isAudioMenuOpen && (
+                        <div className="story-menu-dropdown">
+                          <button
+                            type="button"
+                            className="story-menu-item"
+                            onClick={() => {
+                              setIsAudioMenuOpen(false)
+                              handleDeleteAllAudio()
+                            }}
+                          >
+                            Delete All Audio files
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <label htmlFor="story-voice-select" style={{ fontSize: '0.9rem', fontWeight: 500 }}>
-                    Voice:
-                  </label>
-                  <select
-                    id="story-voice-select"
-                    value={storyVoiceId || getDefaultVoiceId(storyLanguage)}
-                    onChange={(e) => handleVoiceChange(e.target.value)}
-                    style={{
-                      padding: '0.4rem 0.8rem',
-                      fontSize: '0.9rem',
-                      border: '1px solid #ccc',
-                      borderRadius: '4px',
-                      backgroundColor: 'white',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {getVoicesForLanguage(storyLanguage).map((voice) => (
-                      <option key={voice.id} value={voice.id}>
-                        {voice.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <div style={{ flex: 1 }}>
+                    <span style={{ fontSize: '0.9rem', color: '#374151' }}>
+                      {audioCount} of {totalEvents} event{totalEvents === 1 ? '' : 's'} have audio
+                    </span>
+                  </div>
               </div>
-            )}
+
+              {isAudioSectionExpanded && (
+                <div className="event-details">
+                  <div className="event-details-section">
+                    <h3>Language & Voice</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      <label>
+                        Language
+                        <select
+                          id="story-language-select"
+                          value={storyLanguage}
+                          onChange={(e) => handleLanguageChange(e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '0.5rem',
+                            fontSize: '0.9rem',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '0.5rem',
+                            backgroundColor: 'white',
+                            cursor: 'pointer',
+                            marginTop: '0.25rem',
+                          }}
+                        >
+                          {LANGUAGES.map((lang) => (
+                            <option key={lang.code} value={lang.code}>
+                              {lang.nativeName} ({lang.name})
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        Voice
+                        <select
+                          id="story-voice-select"
+                          value={storyVoiceId || getDefaultVoiceId(storyLanguage)}
+                          onChange={(e) => handleVoiceChange(e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '0.5rem',
+                            fontSize: '0.9rem',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '0.5rem',
+                            backgroundColor: 'white',
+                            cursor: 'pointer',
+                            marginTop: '0.25rem',
+                          }}
+                        >
+                          {getVoicesForLanguage(storyLanguage).map((voice) => (
+                            <option key={voice.id} value={voice.id}>
+                              {voice.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="event-details-section">
+                    <h3>Audio Actions</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <button
+                        type="button"
+                        className="primary-btn"
+                        onClick={handleGenerateAudio}
+                        disabled={isGeneratingAudio}
+                        style={{ width: '100%' }}
+                      >
+                        {isGeneratingAudio ? 'Generating...' : 'Generate Audio'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })()}
       </header>
 
       <div
@@ -872,15 +1038,6 @@ function EditStoryView({
               : isDirty
                 ? 'Save Changes'
                 : 'Changes Saved'}
-        </button>
-        <button
-          type="button"
-          className="secondary-btn"
-          onClick={handleDeleteAllAudio}
-          style={{ color: '#d32f2f' }}
-          title="Delete all audio files for this story"
-        >
-          Delete All Audio
         </button>
       </div>
 
