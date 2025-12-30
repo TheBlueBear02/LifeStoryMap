@@ -6,6 +6,8 @@ import { useImageComparison } from '../hooks/useImageComparison.js'
 import { formatDateRange } from '../utils/dateUtils.js'
 import { getMainMedia } from '../utils/imageUtils.js'
 import { calculateDistanceKm } from '../utils/mapUtils.js'
+import { getAudioUrl } from '../services/audioService.js'
+import { parseTextIntoWords, matchWordsWithTimestamps } from '../utils/textUtils.js'
 import '../styles/view-story-view.css'
 import '../styles/view-story-view-mobile.css'
 import '../styles/cinema-view.css'
@@ -20,6 +22,11 @@ function CinemaView({ onEventsChange, onActiveEventIndexChange, onMapCameraChang
   const cameraAnimationTimeoutRef = useRef(null)
   const lastEventIndexRef = useRef(null)
   const timerIntervalRef = useRef(null)
+  const audioRef = useRef(null)
+  const lastAudioEventIdRef = useRef(null)
+  const [currentWordIndex, setCurrentWordIndex] = useState(-1)
+  const wordHighlightIntervalRef = useRef(null)
+  const wordsWithTimestampsRef = useRef([])
 
   // Use custom hooks
   const { loading, story, events } = useStoryData(storyId)
@@ -244,11 +251,158 @@ function CinemaView({ onEventsChange, onActiveEventIndexChange, onMapCameraChang
 
   const clampPct = (n) => Math.max(0, Math.min(100, n))
 
+  // Parse text into words with timestamps for highlighting
+  const wordsWithTimestamps = useMemo(() => {
+    if (!eventText) return []
+    const words = parseTextIntoWords(eventText)
+    const wordTimestamps = activeEvent?.content?.wordTimestamps || []
+    const matched = matchWordsWithTimestamps(words, wordTimestamps)
+    // Update ref so event listeners can access current value
+    wordsWithTimestampsRef.current = matched
+    return matched
+  }, [eventText, activeEvent])
+
+  // Determine text direction based on story language
+  const textDirection = useMemo(() => {
+    const storyLanguage = story?.language || 'en'
+    return storyLanguage === 'he' ? 'rtl' : 'ltr'
+  }, [story])
+
+  // Render text with word highlighting
+  const renderTextWithHighlighting = () => {
+    if (!eventText) {
+      const defaultText = textDirection === 'rtl' ? 'טקסט מלא על האירוע' : 'Full text about the event'
+      return <div className="view-story-text" style={{ direction: textDirection }}>{defaultText}</div>
+    }
+
+    return (
+      <div className="view-story-text" style={{ direction: textDirection }}>
+        {wordsWithTimestamps.map((wordObj, index) => {
+          const isHighlighted = index === currentWordIndex
+          const className = isHighlighted ? 'word-highlighted' : ''
+          // Add space after word if it's not punctuation and not the last word
+          const needsSpace = !wordObj.isPunctuation && index < wordsWithTimestamps.length - 1
+          return (
+            <span key={index} className={className} data-word-index={index}>
+              {wordObj.word}{needsSpace ? ' ' : ''}
+            </span>
+          )
+        })}
+      </div>
+    )
+  }
+
   const textContent = (
     <div className="view-story-scroll-area">
-      <div className="view-story-text">{eventText || 'טקסט מלא על האירוע'}</div>
+      {renderTextWithHighlighting()}
     </div>
   )
+
+  // Handle audio playback when event changes
+  useEffect(() => {
+    if (!activeEvent || !audioRef.current) {
+      return
+    }
+
+    const currentEventId = activeEvent.eventId
+    const isNewEvent = lastAudioEventIdRef.current !== currentEventId
+
+    if (isNewEvent) {
+      // Stop and reset any currently playing audio
+      const audio = audioRef.current
+      audio.pause()
+      audio.currentTime = 0
+      audio.src = ''
+
+      // Clear word highlighting
+      setCurrentWordIndex(-1)
+      if (wordHighlightIntervalRef.current) {
+        clearInterval(wordHighlightIntervalRef.current)
+        wordHighlightIntervalRef.current = null
+      }
+
+      // Get audio URL for the current event
+      const audioUrl = getAudioUrl(activeEvent)
+      
+      if (audioUrl) {
+        // Set the audio source and play
+        audio.src = audioUrl
+        
+        // Set up word highlighting based on audio playback
+        const setupWordHighlighting = () => {
+          if (wordHighlightIntervalRef.current) {
+            clearInterval(wordHighlightIntervalRef.current)
+          }
+
+          // Get current words from ref (always up-to-date)
+          const currentWords = wordsWithTimestampsRef.current
+          
+          // Check if we have word timestamps
+          if (!currentWords || currentWords.length === 0) {
+            return
+          }
+          
+          // Check if any words have timestamps
+          const hasTimestamps = currentWords.some(w => w.start != null && w.end != null)
+          if (!hasTimestamps) {
+            return
+          }
+
+          // Update word highlighting based on current audio time
+          wordHighlightIntervalRef.current = setInterval(() => {
+            if (!audioRef.current) return
+            
+            const currentTimeMs = audioRef.current.currentTime * 1000 // Convert to milliseconds
+            
+            // Get fresh words from ref
+            const words = wordsWithTimestampsRef.current
+            
+            // Find the word currently being spoken
+            let highlightedIndex = -1
+            for (let i = 0; i < words.length; i++) {
+              const wordObj = words[i]
+              if (wordObj.start != null && wordObj.end != null) {
+                if (currentTimeMs >= wordObj.start && currentTimeMs < wordObj.end) {
+                  highlightedIndex = i
+                  break
+                }
+              }
+            }
+            
+            // Also check if we're past the last word (highlight last word)
+            if (highlightedIndex === -1 && words.length > 0) {
+              const lastWord = words[words.length - 1]
+              if (lastWord.end != null && currentTimeMs >= lastWord.end) {
+                highlightedIndex = words.length - 1
+              }
+            }
+            
+            setCurrentWordIndex(highlightedIndex)
+          }, 50) // Update every 50ms for smooth highlighting
+        }
+
+        // Start highlighting when audio starts playing
+        audio.addEventListener('play', setupWordHighlighting, { once: true })
+        
+        // Stop highlighting when audio ends
+        audio.addEventListener('ended', () => {
+          if (wordHighlightIntervalRef.current) {
+            clearInterval(wordHighlightIntervalRef.current)
+            wordHighlightIntervalRef.current = null
+          }
+          setCurrentWordIndex(-1)
+        })
+
+        audio.play().catch((error) => {
+          // Handle autoplay restrictions (browsers may block autoplay)
+          console.warn('Audio autoplay was prevented:', error)
+        })
+      }
+
+      // Update the last event ID we played audio for
+      lastAudioEventIdRef.current = currentEventId
+    }
+  }, [activeEvent, currentEventIndex])
 
   // Handle camera changes and start timer after animation completes
   useEffect(() => {
@@ -322,7 +476,7 @@ function CinemaView({ onEventsChange, onActiveEventIndexChange, onMapCameraChang
     }
   }, [activeEvent, currentEventIndex, events, navigate, onActiveEventIndexChange, onMapCameraChange])
 
-  // Cleanup timeouts on unmount
+  // Cleanup timeouts and audio on unmount
   useEffect(() => {
     return () => {
       if (autoAdvanceTimeoutRef.current) {
@@ -336,6 +490,14 @@ function CinemaView({ onEventsChange, onActiveEventIndexChange, onMapCameraChang
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current)
         timerIntervalRef.current = null
+      }
+      if (wordHighlightIntervalRef.current) {
+        clearInterval(wordHighlightIntervalRef.current)
+        wordHighlightIntervalRef.current = null
+      }
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.src = ''
       }
     }
   }, [])
@@ -352,6 +514,14 @@ function CinemaView({ onEventsChange, onActiveEventIndexChange, onMapCameraChang
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current)
       timerIntervalRef.current = null
+    }
+    if (wordHighlightIntervalRef.current) {
+      clearInterval(wordHighlightIntervalRef.current)
+      wordHighlightIntervalRef.current = null
+    }
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.src = ''
     }
     navigate('/')
   }
@@ -382,6 +552,9 @@ function CinemaView({ onEventsChange, onActiveEventIndexChange, onMapCameraChang
 
   return (
     <div className="view-story-view cinema-view-overlay" dir="rtl">
+      {/* Hidden audio element for auto-play */}
+      <audio ref={audioRef} preload="auto" />
+      
       {/* Fixed timeline at top */}
       {events.length > 0 ? (
         <div className="view-story-timeline-fixed">

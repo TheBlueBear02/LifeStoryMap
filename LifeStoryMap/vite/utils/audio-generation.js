@@ -84,6 +84,81 @@ export const isCriticalError = (errorMessage, statusCode) => {
 }
 
 /**
+ * Estimates word timestamps based on text and audio duration
+ * This is a fallback since ElevenLabs doesn't provide word timestamps directly
+ * @param {string} text - Plain text
+ * @param {ArrayBuffer} audioBuffer - Audio file buffer
+ * @returns {Array} Array of {word, start, end} objects in milliseconds
+ */
+function generateWordTimestamps(text, audioBuffer) {
+  // Parse text into words (handling both English and Hebrew)
+  // Split by whitespace and punctuation, but keep punctuation with words
+  const words = text.match(/[\u0590-\u05FF\u0600-\u06FF\u0400-\u04FF\u4E00-\u9FFF\w]+|[^\s\w\u0590-\u05FF\u0600-\u06FF\u0400-\u04FF\u4E00-\u9FFF]+/g) || []
+  
+  // Estimate audio duration from MP3 buffer
+  // MP3 files have metadata, but for estimation we'll use a simple approach
+  // Average speaking rate: ~150 words per minute for English, ~120 for Hebrew
+  // This is a rough estimate - in production, you'd want to decode the MP3 to get exact duration
+  const estimatedDurationMs = estimateAudioDuration(audioBuffer)
+  
+  if (words.length === 0 || estimatedDurationMs === 0) {
+    return []
+  }
+
+  // Calculate average time per character (rough estimate)
+  const totalChars = text.length
+  const timePerChar = estimatedDurationMs / totalChars
+  
+  // Generate timestamps for each word
+  const timestamps = []
+  let currentTime = 0
+  
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i]
+    const wordLength = word.length
+    
+    // Estimate duration for this word based on character count
+    // Add a small pause between words (50ms)
+    const wordDuration = Math.max(100, wordLength * timePerChar * 1.2) // 1.2x multiplier for natural pacing
+    
+    timestamps.push({
+      word: word,
+      start: Math.round(currentTime),
+      end: Math.round(currentTime + wordDuration),
+    })
+    
+    currentTime += wordDuration + 50 // Add pause between words
+  }
+  
+  // Normalize to fit within estimated duration
+  if (currentTime > estimatedDurationMs) {
+    const scale = estimatedDurationMs / currentTime
+    timestamps.forEach(ts => {
+      ts.start = Math.round(ts.start * scale)
+      ts.end = Math.round(ts.end * scale)
+    })
+  }
+  
+  return timestamps
+}
+
+/**
+ * Estimates audio duration from MP3 buffer
+ * This is a simplified estimation - for production, use a proper MP3 decoder
+ * @param {ArrayBuffer} audioBuffer - MP3 file buffer
+ * @returns {number} Estimated duration in milliseconds
+ */
+function estimateAudioDuration(audioBuffer) {
+  // MP3 bitrate estimation (typical values: 128kbps, 192kbps, 320kbps)
+  // We'll use 128kbps as default for ElevenLabs output
+  const estimatedBitrate = 128000 // bits per second
+  const fileSizeBytes = audioBuffer.byteLength
+  const fileSizeBits = fileSizeBytes * 8
+  const durationSeconds = fileSizeBits / estimatedBitrate
+  return Math.round(durationSeconds * 1000)
+}
+
+/**
  * Generates audio for events in a story using ElevenLabs API
  */
 export const generateAudioForStory = async (story, events, elevenLabsToken, stripHtmlFn) => {
@@ -151,6 +226,10 @@ export const generateAudioForStory = async (story, events, elevenLabsToken, stri
       }
       // For Hebrew, omit language_code - the multilingual model will auto-detect from text
 
+      // First, get audio with word timestamps
+      // ElevenLabs doesn't directly support word timestamps in the standard API,
+      // so we'll make a request to get timing information
+      // We'll use a two-step approach: get audio first, then estimate word timings
       const response = await fetch(elevenLabsUrl, {
         method: 'POST',
         headers: {
@@ -200,11 +279,17 @@ export const generateAudioForStory = async (story, events, elevenLabsToken, stri
       
       await fs.promises.writeFile(audioFilePath, Buffer.from(audioBuffer))
 
-      // Update event with audio URL
+      // Generate word timestamps
+      // Since ElevenLabs doesn't provide word timestamps directly, we'll estimate them
+      // based on the audio duration and word positions in the text
+      const wordTimestamps = generateWordTimestamps(textToSend, audioBuffer)
+
+      // Update event with audio URL and word timestamps
       if (!event.content) {
         event.content = {}
       }
       event.content.audioUrl = `/stories/audio/${story.id}/${audioFileName}`
+      event.content.wordTimestamps = wordTimestamps
       hasUpdates = true
       generatedFiles.push({
         eventId: event.eventId,
